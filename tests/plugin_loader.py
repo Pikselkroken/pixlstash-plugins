@@ -84,6 +84,9 @@ def check_parameter_schema(
     assert isinstance(schema, list), f"{name}: parameter_schema() must return a list"
     seen = set()
     for field in schema:
+        assert isinstance(field, dict), (
+            f"{name}: each parameter schema entry must be a dict, got {type(field).__name__!r}"
+        )
         for key in ("name", "label", "type", "default"):
             assert key in field, f"{name}: parameter is missing '{key}': {field}"
         assert field["name"] not in seen, f"{name}: duplicate parameter {field['name']}"
@@ -97,6 +100,10 @@ def check_parameter_schema(
             assert options, f"{name}: a select parameter needs options"
             if select_options_are_dicts:
                 for option in options:
+                    assert isinstance(option, dict), (
+                        f"{name}: each select option must be a dict, got "
+                        f"{type(option).__name__!r}"
+                    )
                     assert "value" in option and "label" in option, (
                         f"{name}: select options must be "
                         '[{"value": ..., "label": ...}]'
