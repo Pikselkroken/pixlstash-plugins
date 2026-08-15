@@ -85,7 +85,8 @@ def check_parameter_schema(
     seen = set()
     for field in schema:
         assert isinstance(field, dict), (
-            f"{name}: each parameter schema entry must be a dict, got {type(field).__name__!r}"
+            f"{name}: each parameter schema entry must be a dict, got "
+            f"{type(field).__name__!r}"
         )
         for key in ("name", "label", "type", "default"):
             assert key in field, f"{name}: parameter is missing '{key}': {field}"
