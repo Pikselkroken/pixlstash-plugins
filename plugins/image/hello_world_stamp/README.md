@@ -6,16 +6,16 @@ It loads no model and needs nothing but Pillow, so it is the quickest way to
 prove your user image plugin directory is in the right place: if the text
 appears, PixlStash found the file.
 
-It is also the smallest complete image plugin — a parameter schema, the batch
+It is also the smallest complete image plugin: a parameter schema, the batch
 loop, progress reporting, and a per-image failure that costs one picture instead
 of the batch. Replace `_stamp` with your own transform and you have a plugin.
 
 ## Install
 
-Copy **`hello_world_stamp.py`** — the file, not this folder; the image plugin
-loader only scans for `.py` files — into your user image plugin directory. It
-appears in the Filters menu the next time that menu is listed; image plugins are
-re-scanned per request, so no restart is needed.
+Copy **`hello_world_stamp.py`**, the file and not this folder, into your user
+image plugin directory; the image plugin loader only scans for `.py` files. It
+appears in the Filters menu the next time that menu is listed, since image
+plugins are re-scanned per request, so no restart is needed.
 
 ## Dependencies
 
@@ -29,7 +29,7 @@ None beyond PixlStash itself (Pillow ships with it).
 | `size` | number | `24` | Height of the text in pixels, clamped to 1–512. |
 | `position` | select | `bottom-right` | `top-left`, `top-right`, `bottom-left`, `bottom-right` or `centre`. |
 
-The colour is a constant, `MAGENTA` at the top of the file — change it there.
+The colour is a constant, `MAGENTA` at the top of the file.
 
 Images with an alpha channel keep it, and a greyscale, palette or CMYK source is
 converted to RGB so the colour survives. Video is not supported
@@ -40,4 +40,4 @@ cannot be scaled, so `size` has no effect there and the stamp is small.
 
 ## License
 
-MIT — see the [LICENSE](../../../LICENSE) at the repository root.
+MIT, see the [LICENSE](../../../LICENSE) at the repository root.

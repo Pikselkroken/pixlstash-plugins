@@ -35,7 +35,7 @@ class HelloWorldCaptioner(TaggerPlugin):
         self._device = "cpu"
 
     # ------------------------------------------------------------------
-    # Schema — this JSON *is* the settings UI
+    # Schema: this JSON *is* the settings UI
     # ------------------------------------------------------------------
 
     def parameter_schema(self) -> list[dict[str, Any]]:
@@ -124,9 +124,9 @@ class HelloWorldCaptioner(TaggerPlugin):
             except Exception:
                 # A template the user typed can fail in more ways than one:
                 # {nope} raises KeyError, {filename.nope} raises AttributeError,
-                # {0} raises IndexError. Catch broadly and fail this image
-                # only — raising would lose the whole batch. This is the shape
-                # a real captioner's inference call should have too.
+                # {0} raises IndexError. Catch broadly and fail this image only,
+                # since raising would lose the whole batch. A real captioner's
+                # inference call should have the same shape.
                 results[path] = None
                 continue
             # max_length <= 0 means "do not truncate".

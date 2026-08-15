@@ -34,7 +34,7 @@ def plugin_dirs(root: Path) -> list[Path]:
 
 
 def import_from_path(module_name: str, path: Path) -> ModuleType:
-    """Import *path* — a ``.py`` file or a package directory — as *module_name*."""
+    """Import *path*, a ``.py`` file or a package directory, as *module_name*."""
     if path.is_dir():
         spec = importlib.util.spec_from_file_location(
             module_name,
@@ -64,7 +64,7 @@ def import_from_path(module_name: str, path: Path) -> ModuleType:
 def skip_if_dependency_missing(exc: ModuleNotFoundError, plugin: str) -> None:
     """Skip the test when *exc* is a plugin dependency CI does not install.
 
-    A missing ``pixlstash`` is never skipped — that is the harness being wrong,
+    A missing ``pixlstash`` is never skipped: that is the harness being wrong,
     not the plugin.
     """
     if exc.name and exc.name.split(".")[0] != "pixlstash":

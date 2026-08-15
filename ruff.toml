@@ -1,11 +1,11 @@
 # Ruff's default rule set grows between releases, and a rule added upstream
 # turns a contributor's CI red on code they did not write. This file does not
-# restate the whole set — it takes the defaults and subtracts; the protection
+# restate the whole set; it takes the defaults and subtracts. The protection
 # against drift is the version pin in `requirements-dev.txt`, not this file.
 
 # Ruff's *formatter* reformats Python code blocks inside Markdown; its linter
 # never reads Markdown at all. Documentation snippets are written to be read,
-# not to satisfy a formatter — a signature deliberately shown on one line comes
+# not to satisfy a formatter: a signature deliberately shown on one line comes
 # back exploded across seven, and CI goes red over prose.
 #
 # The cost of this exclusion is real and worth knowing: the Python in docs/ is

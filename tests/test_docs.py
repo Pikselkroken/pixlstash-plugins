@@ -1,7 +1,7 @@
 """Check the Python in the documentation at least parses.
 
 `ruff.toml` excludes Markdown from the formatter (it reflows doc snippets into
-machine output), and ruff's linter never reads Markdown at all — so without this
+machine output), and ruff's linter never reads Markdown at all, so without this
 the code a reader is told to copy is the only Python in the repository nobody
 checks. That is how a broken example gets published.
 
@@ -27,7 +27,7 @@ SNIPPETS = [
 
 
 def test_documentation_has_python_examples():
-    assert SNIPPETS, "no ```python fences found — has the fence syntax changed?"
+    assert SNIPPETS, "no ```python fences found; has the fence syntax changed?"
 
 
 @pytest.mark.parametrize(("path", "index", "code"), SNIPPETS)

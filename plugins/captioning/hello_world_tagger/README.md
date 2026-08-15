@@ -1,6 +1,6 @@
 # Hello World Tagger
 
-Applies a fixed list of tags — `hello world` by default — to every image.
+Applies a fixed list of tags, `hello world` by default, to every image.
 
 It runs no model, so it is the quickest way to prove your user plugin folder is
 in the right place: if the tags appear after a tagging run, PixlStash found your
@@ -25,4 +25,4 @@ None beyond PixlStash itself.
 
 ## License
 
-MIT — see the [LICENSE](../../../LICENSE) at the repository root.
+MIT, see the [LICENSE](../../../LICENSE) at the repository root.
