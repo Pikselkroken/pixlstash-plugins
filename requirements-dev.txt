@@ -1,0 +1,23 @@
+# Everything needed to run the contract tests in tests/.
+pytest>=8.0
+# Pinned to a minor: ruff's default rule set changes between releases, and an
+# unpinned linter turns someone else's release into your red CI. See ruff.toml.
+ruff~=0.16.3
+
+# PixlStash itself is installed with --no-deps (see .github/workflows/ci.yml):
+# a full install pulls torch and friends for nothing. These are the handful of
+# packages the two base classes actually need at import time.
+#
+#   pixlstash.tagger_plugins.base  — nothing; pure standard library
+#   pixlstash.image_plugins.base   — Pillow, numpy, cv2, and whatever
+#                                    pixlstash.image_plugins.__init__ drags in
+#                                    (platformdirs, uvicorn, colorlog) because
+#                                    it imports its registry eagerly
+# 10.1 is where ImageFont.load_default() started taking a size, which
+# hello_world_stamp needs to honour its `size` parameter.
+Pillow>=10.1
+numpy>=1.26
+opencv-python-headless>=4.9
+platformdirs>=4.0
+uvicorn>=0.30
+colorlog>=6.8

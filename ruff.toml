@@ -1,0 +1,21 @@
+# Ruff's default rule set grows between releases, and a rule added upstream
+# turns a contributor's CI red on code they did not write. This file does not
+# restate the whole set — it takes the defaults and subtracts; the protection
+# against drift is the version pin in `requirements-dev.txt`, not this file.
+
+# Ruff's *formatter* reformats Python code blocks inside Markdown; its linter
+# never reads Markdown at all. Documentation snippets are written to be read,
+# not to satisfy a formatter — a signature deliberately shown on one line comes
+# back exploded across seven, and CI goes red over prose.
+#
+# The cost of this exclusion is real and worth knowing: the Python in docs/ is
+# not even syntax-checked. It has been checked by hand; check yours by hand too.
+extend-exclude = ["*.md"]
+
+[lint]
+ignore = [
+    # A per-item `except Exception` is the plugin contract for both systems:
+    # a failure must cost one image, not the whole batch. Third-party model
+    # code raises whatever it likes, so the catch cannot be narrowed honestly.
+    "BLE001",
+]
