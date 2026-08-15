@@ -33,7 +33,7 @@ class HelloWorldTagger(TaggerPlugin):
         self._loaded = False
 
     # ------------------------------------------------------------------
-    # Schema — this JSON *is* the settings UI
+    # Schema: this JSON *is* the settings UI
     # ------------------------------------------------------------------
 
     def parameter_schema(self) -> list[dict[str, Any]]:
@@ -58,7 +58,7 @@ class HelloWorldTagger(TaggerPlugin):
         ]
 
     # ------------------------------------------------------------------
-    # Lifecycle — no model, so there is nothing to load or free
+    # Lifecycle: no model, so there is nothing to load or free
     # ------------------------------------------------------------------
 
     def needs_download(self, parameters: dict[str, Any] | None = None) -> bool:
@@ -86,7 +86,7 @@ class HelloWorldTagger(TaggerPlugin):
     ) -> dict[str, list[TagResult]]:
         """Return the configured tags for every path in the batch."""
         # Saved settings are validated by name but not by type, so read them
-        # defensively — a string where a number was expected is a real case.
+        # defensively: a string where a number was expected is a real case.
         raw = parameters.get("tags", DEFAULT_TAGS)
         tags = [t.strip() for t in str(raw or "").split(",") if t.strip()]
         if not tags:

@@ -53,10 +53,10 @@ def load_plugin_class(directory: Path) -> type[ImagePlugin]:
     This is ``ImagePluginManager._find_plugin_class`` verbatim: the *first*
     ``ImagePlugin`` subclass in the module namespace, whether it was defined
     here, merely imported, or abstract. Reimplementing it any more carefully
-    than the host does would hide exactly the mistakes it exists to catch —
-    a plugin file that imports a built-in ships that built-in instead of its
-    own class, and the user directory wins the name, so the built-in is
-    silently replaced.
+    than the host does would hide exactly the mistakes it exists to catch: a
+    plugin file that imports a built-in ships that built-in instead of its own
+    class, and the user directory wins the name, so the built-in is silently
+    replaced.
     """
     module_name = "pixlstash_dynamic_plugin_" + plugin_file(directory).name.replace(
         ".", "_"
@@ -77,7 +77,7 @@ def load_plugin_class(directory: Path) -> type[ImagePlugin]:
     ]
     assert candidates, f"{directory.name}: no ImagePlugin subclass found"
     assert len(candidates) == 1, (
-        f"{directory.name}: exactly one ImagePlugin subclass per file — the "
+        f"{directory.name}: exactly one ImagePlugin subclass per file. The "
         f"loader takes the first it finds and would ship "
         f"{candidates[0].__name__}, found {[c.__name__ for c in candidates]}"
     )
@@ -88,7 +88,7 @@ def load_plugin_class(directory: Path) -> type[ImagePlugin]:
         f"file imported from {found.__module__} rather than defined"
     )
     assert not inspect.isabstract(found), (
-        f"{directory.name}: {found.__name__} is abstract — the image loader "
+        f"{directory.name}: {found.__name__} is abstract. The image loader "
         "does not skip abstract classes, so it would be picked and then fail "
         f"to instantiate. Missing: {sorted(found.__abstractmethods__)}"
     )
@@ -110,7 +110,7 @@ def test_there_are_image_plugins():
 def test_every_plugin_is_one_py_file_named_after_its_folder():
     for directory in IMAGE_PLUGINS:
         assert plugin_file(directory).is_file(), (
-            f"{directory.name}: expected {directory.name}.py in this folder — "
+            f"{directory.name}: expected {directory.name}.py in this folder. "
             "the image plugin loader copies a file, not a folder, and the name "
             "is what keeps two plugins from colliding in the user directory"
         )
@@ -124,7 +124,7 @@ def test_every_plugin_is_one_py_file_named_after_its_folder():
             if p.name != plugin_file(directory).name
         ]
         assert not strays, (
-            f"{directory.name}: {strays} would not be copied with the plugin — "
+            f"{directory.name}: {strays} would not be copied with the plugin. "
             "the loader imports one file and cannot see its siblings"
         )
 
@@ -247,7 +247,7 @@ def test_stamp_position():
     """Placements are compared against each other, not against pixel counts.
 
     Asserting "the ink is in the left half" would depend on how wide Pillow's
-    bundled font happens to be, and Pillow is not pinned — a font metric
+    bundled font happens to be, and Pillow is not pinned, so a font metric
     changing by a few percent would turn CI red on code nobody touched. The
     relative ordering holds for any font.
     """

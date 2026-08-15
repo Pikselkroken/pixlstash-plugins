@@ -1,4 +1,4 @@
-"""Hello-world image plugin for PixlStash — stamps "Hello World" on the image.
+"""Hello-world image plugin for PixlStash: stamps "Hello World" on the image.
 
 Draws text in magenta in a corner of each picture. It loads no model and needs
 nothing but Pillow, so it is the quickest way to prove your user image plugin
@@ -8,9 +8,9 @@ It is also the smallest complete image plugin: a parameter schema, the batch
 loop, progress reporting, and a per-image failure that costs one picture instead
 of the batch. Replace ``_stamp`` with your own transform and you have a plugin.
 
-Copy *this file* — not its folder — into your user image plugin directory. No
-restart: image plugins are re-scanned every time the Filters menu is listed and
-every time one runs. See the repository README.
+Copy *this file*, not its folder, into your user image plugin directory. No
+restart needed: image plugins are re-scanned on every menu listing and run. See
+the repository README.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ class HelloWorldStamp(ImagePlugin):
                 "type": "select",
                 "default": "bottom-right",
                 # Image plugins declare select options as a plain list of
-                # values — unlike captioning plugins, which use dicts.
+                # values, unlike captioning plugins, which use dicts.
                 "options": POSITIONS,
                 "description": "Where on the image the text goes.",
             },
@@ -77,7 +77,7 @@ class HelloWorldStamp(ImagePlugin):
         params = parameters or {}
         # Parameters arrive off a JSON payload and are not type-checked, so
         # read them defensively. (The base class has private helpers for this;
-        # do not reach for them — they are not part of the plugin API and are
+        # do not reach for them: they are not part of the plugin API and are
         # not in every PixlStash version.)
         text = params.get("text", DEFAULT_TEXT)
         text = text if isinstance(text, str) else DEFAULT_TEXT
@@ -109,9 +109,9 @@ class HelloWorldStamp(ImagePlugin):
                     details={"error": str(exc)},
                 )
                 # The untransformed original, not `image.copy()`: whatever made
-                # the transform fail can make the copy fail too, and an
-                # exception raised inside the handler abandons the batch after
-                # all. The list must stay the same length as the input.
+                # the transform fail can make the copy fail too, and raising
+                # inside the handler abandons the batch after all. The list must
+                # stay the same length as the input.
                 out.append(image)
         return out
 

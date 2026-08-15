@@ -8,8 +8,8 @@ ruff~=0.16.3
 # a full install pulls torch and friends for nothing. These are the handful of
 # packages the two base classes actually need at import time.
 #
-#   pixlstash.tagger_plugins.base  — nothing; pure standard library
-#   pixlstash.image_plugins.base   — Pillow, numpy, cv2, and whatever
+#   pixlstash.tagger_plugins.base: nothing, pure standard library
+#   pixlstash.image_plugins.base:  Pillow, numpy, cv2, and whatever
 #                                    pixlstash.image_plugins.__init__ drags in
 #                                    (platformdirs, uvicorn, colorlog) because
 #                                    it imports its registry eagerly

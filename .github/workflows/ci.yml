@@ -29,8 +29,8 @@ jobs:
 
       # Note on what this job is and is not. It does NOT install a plugin's own
       # requirements.txt, so a plugin with third-party dependencies is skipped
-      # entirely by the contract tests — skipped means unchecked, not
-      # half-checked. And it is not a security boundary either way: pytest
+      # entirely by the contract tests: skipped means unchecked, not
+      # half-checked. And it is not a security boundary either way, since pytest
       # imports and runs a pull request's plugin code. Read a plugin before
       # merging it.
       - run: ruff check .

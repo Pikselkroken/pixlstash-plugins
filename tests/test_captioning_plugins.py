@@ -5,8 +5,8 @@ They import each plugin folder the way PixlStash does and check it against the
 name that does not collide with a built-in, and an inference call that returns
 the documented shape.
 
-A plugin whose third-party dependencies are not installed is skipped *entirely*
-— CI installs nothing from a plugin's ``requirements.txt``, and every check here
+A plugin whose third-party dependencies are not installed is skipped *entirely*:
+CI installs nothing from a plugin's ``requirements.txt``, and every check here
 needs the plugin class, which needs the import. So CI is a real bar only for
 plugins that run on a bare runner; for anything wrapping a model, human review
 is the bar. Skipped plugins are named in the pytest output.
@@ -105,7 +105,7 @@ def test_every_plugin_is_a_package_with_a_readme():
     for directory in CAPTIONING_PLUGINS:
         assert (directory / "__init__.py").is_file(), (
             f"{directory.name}: a captioning plugin folder needs an __init__.py "
-            "— PixlStash skips a folder without one"
+            "(PixlStash skips a folder without one)"
         )
         assert (directory / "README.md").is_file(), (
             f"{directory.name}: every plugin needs a README naming its "
@@ -149,7 +149,7 @@ def test_plugin_contract(directory: Path, image_paths: list[str]):
 
         # Equality, not subset: with no stop_event a plugin must account for
         # every path it was given. A per-image failure is reported by mapping
-        # that path to None, not by dropping the key — and a plugin returning
+        # that path to None, not by dropping the key, and a plugin returning
         # {} would sail through a subset check having done nothing.
         if plugin.supports_tags:
             result = plugin.tag_images(image_paths, plugin.default_params())
@@ -203,7 +203,7 @@ def test_hello_world_tagger_tags_every_image(image_paths: list[str]):
 
 @pytest.mark.parametrize("tags", [None, "", "   ", " , , ", 42])
 def test_hello_world_tagger_survives_junk_settings(tags, image_paths: list[str]):
-    """Saved values are validated by name, not by type — and never tag nothing."""
+    """Saved values are validated by name, not by type, and never tag nothing."""
     result = load_one("hello_world_tagger").tag_images(
         image_paths, {"tags": tags, "confidence": "not a number"}
     )
@@ -241,7 +241,7 @@ def test_hello_world_captioner_fills_the_template(image_paths: list[str]):
     "template",
     [
         "{nope}",  # KeyError
-        "{filename.nope}",  # AttributeError — not documented by str.format
+        "{filename.nope}",  # AttributeError, undocumented by str.format
         "{0}",  # IndexError
         "{filename:d}",  # ValueError
     ],
