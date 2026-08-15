@@ -25,6 +25,7 @@ plugins/captioning/<name>/    __init__.py + README.md  (copy the FOLDER)
 plugins/image/<name>/         <name>.py  + README.md   (copy the .PY FILE)
 docs/                         the two contracts
 tests/                        contract tests every plugin must pass
+AGENTS.md, CLAUDE.md          the same instructions, for coding agents
 ```
 
 One folder per plugin, holding its code, its README, and a `requirements.txt` if
@@ -91,6 +92,18 @@ Read the relevant one first. The two look alike but differ in ways that will
 bite you if you carry assumptions across: name collisions resolve in opposite
 directions, `select` options have different shapes, a folder is a plugin in one
 and not the other. The image guide ends with a table of the differences.
+
+Asking a coding agent to write one works too. Point it at this repository and
+at the documentation of the model or API you want wrapped, for example:
+
+> Write me a PixlStash captioning plugin based on the repo at
+> https://github.com/Pikselkroken/pixlstash-captioning-plugins for the XXX
+> captioning system at https://...
+
+[`AGENTS.md`](AGENTS.md) (and its identical twin [`CLAUDE.md`](CLAUDE.md)) is
+the brief it should follow: the rules, a skeleton, and the traps. Review what
+comes back against the contract, and remember that CI cannot check a plugin
+whose model it cannot install.
 
 Four things apply to both:
 
