@@ -55,7 +55,7 @@ class HelloWorldCaptioner(TaggerPlugin):
                 "label": "Max length",
                 "type": "integer",
                 "default": 200,
-                "min": 10,
+                "min": 0,
                 "max": 2000,
                 "step": 10,
                 "description": (
