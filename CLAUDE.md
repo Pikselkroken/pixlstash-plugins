@@ -10,7 +10,7 @@ A human reading this is not the target audience; they want the
 ## The task you were probably given
 
 > Write me a PixlStash captioning plugin based on the repo at
-> `https://github.com/Pikselkroken/pixlstash-captioning-plugins` for the XXX
+> `https://github.com/Pikselkroken/PixlStash-plugins` for the XXX
 > captioning system at `https://...`
 
 Deliver **one new folder** under `plugins/captioning/` or `plugins/image/`,

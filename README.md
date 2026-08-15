@@ -97,7 +97,7 @@ Asking a coding agent to write one works too. Point it at this repository and
 at the documentation of the model or API you want wrapped, for example:
 
 > Write me a PixlStash captioning plugin based on the repo at
-> https://github.com/Pikselkroken/pixlstash-captioning-plugins for the XXX
+> https://github.com/Pikselkroken/PixlStash-plugins for the XXX
 > captioning system at https://...
 
 [`AGENTS.md`](AGENTS.md) (and its identical twin [`CLAUDE.md`](CLAUDE.md)) is
@@ -122,8 +122,8 @@ Four things apply to both:
 To start from an example:
 
 ```bash
-git clone https://github.com/Pikselkroken/pixlstash-captioning-plugins.git
-cd pixlstash-captioning-plugins
+git clone https://github.com/Pikselkroken/PixlStash-plugins.git
+cd PixlStash-plugins
 
 # captioning: copy the folder, edit __init__.py
 cp -r plugins/captioning/hello_world_captioner plugins/captioning/my_captioner
@@ -188,7 +188,7 @@ Turned down: a plugin that phones home, that reads or writes outside the paths
 it is given, that pulls in a dependency it does not need, or that duplicates an
 existing one without doing something meaningfully different. Unsure whether an
 idea fits?
-[Open an issue](https://github.com/Pikselkroken/pixlstash-captioning-plugins/issues)
+[Open an issue](https://github.com/Pikselkroken/PixlStash-plugins/issues)
 first. Bug reports and fixes for the plugins already here are just as welcome.
 
 ## License
