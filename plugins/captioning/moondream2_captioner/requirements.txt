@@ -1,0 +1,15 @@
+# Everything here already ships with PixlStash, so a normal install needs
+# nothing extra. The list is here so the plugin says what it imports, and so
+# it can be installed into a bare environment.
+#
+# Do not pip-install this file into a working PixlStash environment without
+# looking: it would happily move torch under a running install.
+torch
+transformers
+huggingface_hub
+safetensors
+Pillow
+
+# Moondream's own requirements.txt also lists pyvips, which it uses for faster
+# crop resizing when it is importable. It falls back to Pillow when it is not,
+# so it is deliberately left out here.
