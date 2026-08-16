@@ -213,6 +213,21 @@ def test_an_inherited_header_counts():
     assert read_class_header(Subclass) == {**HEADER, "name": "subclass"}
 
 
+def test_the_last_assignment_in_a_class_body_wins():
+    """What Python does when it executes the body, so what the object holds.
+
+    A reader taking the first would report a value the plugin does not have,
+    and the source-against-object check would then fail an honest class.
+    """
+
+    class Rewritten(LiteralHeader):
+        license = "MIT"
+        license = "Apache-2.0"  # noqa: PIE794
+
+    assert read_class_header(Rewritten)["license"] == "Apache-2.0"
+    check_plugin_header("plugin_under_test", Rewritten())
+
+
 def test_the_hosts_own_defaults_are_not_a_header():
     """``TaggerPlugin`` declares three of the six as ``""``.
 

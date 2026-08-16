@@ -122,7 +122,11 @@ def read_class_header(cls: type) -> dict[str, Any]:
         except (OSError, TypeError, SyntaxError, IndexError, AttributeError):
             # No source to read: a builtin, or a class defined in a REPL.
             continue
-        for statement in statements:
+        # Backwards through the class body, so that within one class the last
+        # assignment wins, as it does when Python executes it. `setdefault`
+        # then keeps the first class in the MRO, which is the other half of
+        # the same rule: a subclass shadows its base.
+        for statement in reversed(statements):
             if isinstance(statement, ast.Assign):
                 targets = statement.targets
             elif isinstance(statement, ast.AnnAssign):
