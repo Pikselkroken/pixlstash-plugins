@@ -33,6 +33,11 @@ class HelloWorldStamp(ImagePlugin):
     name = "hello_world_stamp"
     display_name = "Hello World Stamp"
     description = 'Stamps "Hello World" onto the image in magenta. Example plugin.'
+    # The header a tool reads to describe this plugin. Keep the values literal:
+    # they are meant to be readable without importing the plugin.
+    author = "PixlStash plugins <https://github.com/Pikselkroken/PixlStash-plugins>"
+    license = "MIT"
+    models = []  # no model to declare; a real one lists {"name", "license"}
 
     supports_images = True
     supports_videos = False

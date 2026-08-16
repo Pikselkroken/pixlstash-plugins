@@ -105,8 +105,13 @@ the brief it should follow: the rules, a skeleton, and the traps. Review what
 comes back against the contract, and remember that CI cannot check a plugin
 whose model it cannot install.
 
-Four things apply to both:
+Five things apply to both:
 
+- **Both kinds carry the same header.** `name`, `display_name`, `description`,
+  `author`, `license` and `models` on the class, as plain literals, so a tool
+  can say what a plugin is and what it pulls in without importing it. `models`
+  is the one people care about: your MIT license says nothing about the weights
+  the plugin downloads.
 - **`parameter_schema()` *is* the settings UI.** PixlStash builds the dialog
   from the JSON you return.
 - **Values are not type-checked.** Prefer `params.get(key, default)` over
@@ -133,8 +138,11 @@ cp -r plugins/image/hello_world_stamp plugins/image/my_filter
 mv plugins/image/my_filter/hello_world_stamp.py plugins/image/my_filter/my_filter.py
 ```
 
-Then give the class a new `name`, rewrite the folder's `README.md`, and run
-`pytest`; the contract tests will tell you what you missed.
+Then give the class a new `name` and `display_name`, put your own `author`,
+`license` and `models` in the header (an example plugin's say the example
+plugin's, and no test can know that is wrong), rewrite the folder's
+`README.md`, and run `pytest`; the contract tests will tell you what else you
+missed.
 
 List dependencies in the plugin's README and in a `requirements.txt` beside it.
 That file is documentation for whoever installs the plugin; neither PixlStash
@@ -153,10 +161,10 @@ pytest
 ```
 
 The suites check shapes, not behaviour: that a plugin imports, defines the right
-kind of class, has a unique name that is not a built-in's, has a well-formed
-parameter schema, and returns the documented shape from its inference call (one
-entry per input, in order, and a broken picture that does not take the batch
-down with it).
+kind of class, has a unique name that is not a built-in's, carries the header,
+has a well-formed parameter schema, and returns the documented shape from its
+inference call (one entry per input, in order, and a broken picture that does
+not take the batch down with it).
 
 **A plugin whose dependencies are not installed is skipped entirely**, and CI
 installs nothing from a plugin's `requirements.txt`: every check needs the
@@ -173,14 +181,18 @@ Plugins are welcome. Open a pull request against `main`:
 1. **One plugin per pull request**, as one `snake_case` folder under
    `plugins/captioning/` or `plugins/image/`. A captioning folder holds
    `__init__.py`; an image folder holds one `.py` file named after it.
-2. **Include a `README.md`** covering what the plugin does, its dependencies,
+2. **Fill in the header** on the plugin class: `name`, `display_name`,
+   `description`, `author`, `license` and `models`, as plain literals. The
+   contract tests require all six.
+3. **Include a `README.md`** covering what the plugin does, its dependencies,
    its parameters and its license, plus a `requirements.txt` if it needs
-   anything PixlStash does not ship. Copy the layout from an example.
-3. **Run `pytest`, `ruff check .` and `ruff format .`** before you push.
-4. **Say what you tested it against**: which model, which PixlStash version, on
+   anything PixlStash does not ship. Copy the layout from an example, and keep
+   its License section and the header saying the same thing.
+4. **Run `pytest`, `ruff check .` and `ruff format .`** before you push.
+5. **Say what you tested it against**: which model, which PixlStash version, on
    what hardware. A reviewer cannot download every model, and CI skips any
    plugin with a dependency, so this is what makes a plugin reviewable.
-5. **Only contribute code you may license under MIT.** If your plugin wraps a
+6. **Only contribute code you may license under MIT.** If your plugin wraps a
    model with its own license or usage terms, say so in its README; that is the
    user's decision to make.
 

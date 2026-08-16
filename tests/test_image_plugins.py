@@ -20,6 +20,7 @@ from pixlstash.image_plugins.base import ImagePlugin
 from plugin_loader import (
     IMAGE_DIR,
     check_parameter_schema,
+    check_plugin_header,
     import_from_path,
     plugin_dirs,
     skip_if_dependency_missing,
@@ -143,6 +144,7 @@ def test_plugin_contract(directory: Path, images: list[Image.Image]):
         f"{name}: set supports_images and/or supports_videos"
     )
 
+    check_plugin_header(name, plugin)
     check_parameter_schema(
         name,
         plugin.parameter_schema(),

@@ -58,6 +58,9 @@ class MyFilter(ImagePlugin):
     name = "my_filter"  # unique snake_case id
     display_name = "My Filter"  # label in the Filters menu
     description = "What it does."
+    author = "Your Name <your.name@example.com>"  # name and one contact
+    license = "MIT"  # the plugin's own code
+    models = []  # every model or service it uses, and their terms
     supports_images = True  # handles stills via run()
     supports_videos = False  # True also requires run_video()
 
@@ -86,6 +89,42 @@ with a visible error. Pick a name nobody else has.
 
 A plugin that fails to import or construct is recorded as a load error and
 skipped; the rest still load.
+
+### The header
+
+`name`, `display_name`, `description`, `author`, `license` and `models` are the
+plugin header: what a tool needs to tell a user what this plugin is before
+running it. It is the same on both kinds of plugin.
+
+| Field | Contents |
+|-------|----------|
+| `name` | the unique `snake_case` id above |
+| `display_name` | the human-readable name, and what a tool shows instead of the id |
+| `description` | one sentence, shown in the Filters menu |
+| `author` | `Your Name <your.name@example.com>`, one name and one contact; the contact is an email address or an `http(s)` URL, so a plugin with nobody to email gives its project page |
+| `license` | the license of the plugin's own code, an SPDX identifier where there is one |
+| `models` | one entry per model or remote service the plugin uses, each `{"name": ..., "license": ...}`, empty when it uses none |
+
+`models` is the field that matters most to whoever installs the plugin: your MIT
+license says nothing about the weights an upscaler or a diffusion pass
+downloads. Name them and name their terms. An entry may carry more, and a
+`"revision"` naming the ref you pinned is worth adding, since the license of a
+model is only the license of the weights you actually fetch.
+
+Keep the values literal: string, number and list literals in the class body,
+inherited from a base class you ship beside them, but nothing computed and
+nothing assigned in `__init__`. The point of the header is that it can be read
+with `ast.literal_eval`, without importing the plugin, and importing a plugin
+runs its module body on the reader's machine, here on every Filters listing.
+What the source says and what the object carries must be the same thing.
+
+**PixlStash reads half the header.** `plugin_schema()` forwards `name`,
+`display_name` and `description` to the frontend, and nothing forwards
+`author`, `license` or `models`, so today those three are read by tooling
+around the plugin;
+[issue #961](https://github.com/Pikselkroken/pixlstash/issues/961) tracks the
+host side. The contract tests in this repository require all six regardless,
+and a plugin that ships them now needs no edit when the host catches up.
 
 ## 3. `parameter_schema()`, the settings UI
 
@@ -207,3 +246,7 @@ in 1.9.0. `hasattr` is cheap.
 explicit exception to the GPL-3.0 backend, so your plugin can carry whatever
 license you like. Importing anything else from `pixlstash` puts you back under
 the GPL. Plugins contributed to this repository are MIT, like the repository.
+
+Whichever you pick, say so in the `license` field of the header (§2), and list
+the terms of every model you wrap in `models`. That is the user's decision to
+make, and they can only make it if the plugin tells them.

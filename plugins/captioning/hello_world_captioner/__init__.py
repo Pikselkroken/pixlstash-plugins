@@ -25,6 +25,11 @@ class HelloWorldCaptioner(TaggerPlugin):
     name = "hello_world_captioner"
     display_name = "Hello World Captioner"
     description = "Writes a short templated description. Example plugin."
+    # The header a tool reads to describe this plugin. Keep the values literal:
+    # they are meant to be readable without importing the plugin.
+    author = "PixlStash plugins <https://github.com/Pikselkroken/PixlStash-plugins>"
+    license = "MIT"
+    models = []  # no model to declare; a real one lists {"name", "license"}
 
     supports_tags = False
     supports_descriptions = True
