@@ -159,11 +159,23 @@ failed requests, and unreadable files not arming it):
 python plugins/captioning/openai_compatible_captioner/__init__.py
 ```
 
+`pixlstash-cli plugins test` was not run: the published `pixlstash` package
+ships no such entry point, and the CLI, like captioning plugin discovery
+itself, is on `develop` and unreleased.
+
 LM Studio was not tested. It serves the same API and the same request shape,
 and is documented here as the second target rather than as something verified.
 
 ## License
 
-MIT, see the [LICENSE](../../../LICENSE) at the repository root. The model you
-point this at carries its own license and, if it is a hosted service, its own
-terms; both are yours to check.
+MIT, see the [LICENSE](../../../LICENSE) at the repository root. That covers
+this plugin's own code and nothing else.
+
+The model does not come from here, so its terms are not this repository's to
+state: whichever one you name in **Model** carries its own license, and a
+hosted endpoint carries its terms of service on top. The plugin's `models`
+header names the default, `qwen3-vl:8b`, which on Ollama is
+[Qwen/Qwen3-VL-8B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct)
+under Apache-2.0. Point the plugin at something else and that entry no longer
+describes what you are running, which is also why no revision is pinned: an
+Ollama tag resolves on the server, and re-pulling it can change the weights.

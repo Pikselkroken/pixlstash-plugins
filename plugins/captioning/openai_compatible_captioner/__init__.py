@@ -202,6 +202,19 @@ class OpenAICompatibleCaptioner(TaggerPlugin):
         "Captions images with a vision model on an OpenAI-compatible server "
         "(Ollama, LM Studio, ...). Loads nothing locally."
     )
+    # The header a tool reads to describe this plugin. Keep the values literal:
+    # they are meant to be readable without importing the plugin.
+    author = "PixlStash plugins <https://github.com/Pikselkroken/PixlStash-plugins>"
+    license = "MIT"
+    # The model is whichever one the user's server is serving, so this names
+    # the default. There is no revision to pin from here: an Ollama tag is
+    # resolved on the server, and re-pulling it can change the weights.
+    models = [
+        {
+            "name": "qwen3-vl:8b (default; any vision model on the endpoint)",
+            "license": "Apache-2.0 (Qwen/Qwen3-VL-8B-Instruct)",
+        },
+    ]
 
     supports_tags = False
     supports_descriptions = True
