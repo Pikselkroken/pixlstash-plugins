@@ -52,13 +52,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Deliberately no `cache: pip`. Every install here happens inside a
+      # throwaway venv, so with no plugin declaring a requirements.txt nothing
+      # populates ~/.cache/pip and the post-job cache save fails the build.
+      # Worth adding back, with cache-dependency-path over the plugin
+      # requirements, once a plugin pulls something the size of torch.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: |
-            requirements-dev.txt
-            plugins/*/*/requirements.txt
 
       - name: Check each plugin against its own requirements
         run: |
