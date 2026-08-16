@@ -72,13 +72,17 @@ plugin, gets no description; the rest of the batch is still stored.
 - Linux, NVIDIA RTX 5090, CUDA. Roughly 7 s to load, and 0.2 s to 1.2 s per
   picture depending on the length asked for.
 
-Exercised through the plugin's own interface: the download quartet, `init()`
-twice, each mode and length, junk parameter values, an out-of-range
+`pixlstash-cli plugins test` passes, both bare and with `--image`: the plugin
+registers as `moondream2`, all four parameters render, and it captions a real
+picture through PixlStash's own loader.
+
+Exercised through the plugin's own interface too: the download quartet,
+`init()` twice, each mode and length, junk parameter values, an out-of-range
 `max_tokens`, an empty batch, a non-image path, a model stubbed to return
 something that is not a string, and a `stop_event` that is already set. On
 `cuda` and on `cpu`. Not yet exercised inside a running PixlStash server, so
-the settings dialog is built from a schema the contract tests check rather
-than one that has been seen on screen.
+the settings dialog is built from a schema `plugins test` says will render
+rather than one that has been seen on screen.
 
 The repository's contract tests skip this plugin, because CI installs nothing
 from a plugin's `requirements.txt` and the plugin cannot be imported without

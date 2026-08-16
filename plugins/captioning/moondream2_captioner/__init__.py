@@ -111,6 +111,18 @@ class Moondream2Captioner(TaggerPlugin):
     name = "moondream2"
     display_name = "Moondream2"
     description = "Natural-language captions and visual Q&A from Moondream2."
+    # The header, read without importing the plugin: keep the values literal.
+    # MODEL_REPO and MODEL_REVISION are the same two strings, but a constant
+    # would leave nothing here for a reader who is not running the module.
+    author = "PixlStash plugins <https://github.com/Pikselkroken/PixlStash-plugins>"
+    license = "MIT"
+    models = [
+        {
+            "name": "vikhyatk/moondream2",
+            "license": "Apache-2.0",
+            "revision": "2025-06-21",
+        },
+    ]
 
     supports_tags = False
     supports_descriptions = True
