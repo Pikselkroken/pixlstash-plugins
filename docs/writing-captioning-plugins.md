@@ -251,7 +251,8 @@ API and differ between versions.
 `pixlstash/tagger_plugins/base.py` and `plugin_template.py` are MIT-licensed, as
 an explicit exception to the GPL-3.0 backend, so your plugin can carry whatever
 license you like. Importing anything else from `pixlstash` puts you back under
-the GPL. Plugins contributed to this repository are MIT, like the repository.
+the GPL. A plugin contributed to this repository may carry any OSI-approved
+license; the repository itself is MIT.
 
 Whichever you pick, say so in the `license` field of the header (§2), and list
 the terms of every model you wrap in `models`. That is the user's decision to

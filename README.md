@@ -192,9 +192,11 @@ Plugins are welcome. Open a pull request against `main`:
 5. **Say what you tested it against**: which model, which PixlStash version, on
    what hardware. A reviewer cannot download every model, and CI skips any
    plugin with a dependency, so this is what makes a plugin reviewable.
-6. **Only contribute code you may license under MIT.** If your plugin wraps a
-   model with its own license or usage terms, say so in its README; that is the
-   user's decision to make.
+6. **Only contribute code you may license under an OSI-approved open source
+   license.** If your plugin wraps a model with its own license or usage terms,
+   say so in its README; that is the user's decision to make and the license
+   should be clearly marked in the header, following the pattern in the example
+   plugins.
 
 Turned down: a plugin that phones home, that reads or writes outside the paths
 it is given, that pulls in a dependency it does not need, or that duplicates an
@@ -205,4 +207,4 @@ first. Bug reports and fixes for the plugins already here are just as welcome.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license.
+MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license or OSI-approved licenses.
