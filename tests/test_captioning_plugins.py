@@ -29,6 +29,7 @@ from pixlstash.tagger_plugins.base import TaggerPlugin, TagResult
 from plugin_loader import (
     CAPTIONING_DIR,
     check_parameter_schema,
+    check_plugin_header,
     import_from_path,
     plugin_dirs,
     skip_if_dependency_missing,
@@ -137,6 +138,7 @@ def test_plugin_structure(directory: Path):
             "plugin appears in no table"
         )
 
+        check_plugin_header(name, plugin)
         check_parameter_schema(
             name,
             plugin.parameter_schema(),
