@@ -37,10 +37,71 @@ file, since that loader scans for `.py` and cannot see a folder.
 
 ## Installing a plugin
 
+### With `pixlstash-cli`
+
+PixlStash's own CLI installs from this repository by name, so there is nothing
+to copy and no path to get wrong:
+
+```bash
+pixlstash-cli plugins install hello_world_captioner   # a folder name under plugins/
+pixlstash-cli plugins install ./my_captioner/         # or a local folder, .py or .zip
+pixlstash-cli plugins list                            # what is installed, and where
+pixlstash-cli plugins remove hello_world_captioner
+```
+
+`pixlstash-cli` comes with PixlStash rather than with this repository; the
+[PixlStash README](https://github.com/Pikselkroken/pixlstash#installing-plugins)
+says how to reach it from a Docker or desktop install, where it is not on your
+`PATH`.
+
+`install` reads the source without importing it, works out from the base class
+whether it is a captioning plugin or an image filter, and copies it into the
+matching directory under the plugin's own `name`. It prints the plan and asks
+before writing: `--yes` skips the question, `--dry-run` stops after the plan,
+`--force` replaces a plugin of that name, and `--strict` turns every warning
+into a refusal. `--ref` takes a branch, tag or commit of this repository and
+defaults to `main`; it cannot be pointed at a different repository.
+
+**A plugin's `requirements.txt` is not installed unless you pass
+`--with-deps`**, so a plugin with dependencies loads only once you have
+installed them into the environment PixlStash runs in.
+
+`plugins list` prints both plugin directories and what is in them, marking a
+plugin that will not load as it stands with `!` and one that replaces a
+built-in with `*`. It imports nothing, so a failure that only happens at import
+(a missing dependency, say) does not show up there. `plugins remove` prints the
+exact path and asks before deleting; `--kind captioning|image` picks the
+directory when both hold the name, and removing an image plugin that replaced a
+built-in brings the built-in back.
+
+Restart PixlStash Server after installing or removing a captioning plugin.
+Image filters are re-scanned on the next Filters listing.
+
+### Testing a plugin you are writing
+
+```bash
+pixlstash-cli plugins test ./plugins/captioning/my_captioner/
+pixlstash-cli plugins test ./plugins/captioning/my_captioner/ --image ~/Pictures/one.jpg
+```
+
+`plugins test` loads the plugin the way the server does at start-up, registers
+every plugin class it defines, and checks that the parameter schema is one the
+settings screen can render, which the server does not check and which fails
+quietly when it is wrong. A `problem:` means it will not work and exits 1; a
+`warning:` means it works and could be tidier, and exits 0. `--image` runs one
+picture through it as well, which loads the model.
+
+Two limits worth knowing: it checks captioning plugins only, not image filters,
+and **it is a development aid rather than a security scanner**. It *runs* the
+plugin, unsandboxed, with your permissions, exactly as the server would. Only
+test a plugin you would have installed anyway.
+
+### By hand
+
 1. Find the user plugin directory. **Take the exact path from PixlStash**, not
    from this table, because a folder in the wrong place is skipped in silence.
-   Captioning paths are shown in **Settings → Auto-tagging**; both are logged at
-   start-up.
+   `pixlstash-cli plugins list` prints both, captioning paths are shown in
+   **Settings → Auto-tagging**, and both are logged at start-up.
 
    | OS | Captioning plugins | Image plugins |
    |----|--------------------|---------------|

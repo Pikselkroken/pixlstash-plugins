@@ -107,10 +107,11 @@ def read_class_header(cls: type) -> dict[str, Any]:
 
     Inherited fields count, since a reader can follow a base class in the same
     way, so the walk is over the MRO with the first declaration winning. It
-    stops short of PixlStash's own base classes: they declare ``name``,
-    ``display_name`` and ``description`` as empty strings, and inheriting those
-    would pass a plugin that declares half a header while reporting the other
-    half as ``''`` when its source plainly says otherwise.
+    stops short of PixlStash's own base classes, which declare the header's
+    empty defaults: three of the six on a release, and on ``develop`` all six.
+    Inheriting those would pass a plugin that declares nothing at all, and
+    report a field set in ``__init__`` as ``''`` when its source plainly says
+    otherwise.
     """
     header: dict[str, Any] = {}
     for klass in cls.__mro__:

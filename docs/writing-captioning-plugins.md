@@ -45,6 +45,14 @@ as is any other file type.
 plugin.** There is deliberately no reload button: re-instantiating a plugin
 whose model is resident would orphan that model in VRAM.
 
+`pixlstash-cli plugins install <folder|zip|.py>` copies a plugin into the right
+directory for you and `pixlstash-cli plugins list` prints both directories and
+what is in them. While writing one, `pixlstash-cli plugins test <path>` imports
+it the way the server does and checks the parameter schema is renderable, so a
+typo costs a command instead of a restart; `--image PATH` runs one picture
+through it, model and all. It runs your plugin unsandboxed, exactly as the
+server would, so it is a development aid and not a safety check.
+
 Plugin code runs unsandboxed, in the server process, with your permissions. Only
 install plugins you trust.
 
@@ -117,13 +125,14 @@ with `ast.literal_eval`, without importing the plugin, and importing a plugin
 runs its module body on the reader's machine. What the source says and what the
 object carries must be the same thing.
 
-**PixlStash reads half the header.** `plugin_schema()` forwards `name`,
-`display_name` and `description` to the frontend, and nothing forwards
-`author`, `license` or `models`, so today those three are read by tooling
-around the plugin;
-[issue #961](https://github.com/Pikselkroken/pixlstash/issues/961) tracks the
-host side. The contract tests in this repository require all six regardless,
-and a plugin that ships them now needs no edit when the host catches up.
+**`TaggerPlugin` on `develop` declares all six**, `author` and `license`
+defaulting to `""` and `models` to `[]`, and `plugin_schema()` forwards them,
+so a plugin that omits them still loads and simply says nothing about itself
+([issue #961](https://github.com/Pikselkroken/pixlstash/issues/961)).
+`plugin_schema()` raises `TypeError` when `models` is not a list of dicts, and
+the registry probes it at load, so that mistake is refused there rather than
+reaching the frontend. The contract tests in this repository require all six
+and reject an empty one.
 
 ## 3. `parameter_schema()`, the settings UI
 

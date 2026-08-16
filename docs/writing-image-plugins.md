@@ -41,6 +41,14 @@ request**: load models and weights lazily inside `run()`, cached on the instance
 or in a module global, remembering that the instance is replaced on every
 reload.
 
+`pixlstash-cli plugins install <file|zip|folder>` copies a plugin into the
+right directory for you, `pixlstash-cli plugins list` prints both directories
+and what is in them, marking with `*` a plugin that replaces a built-in, and
+`pixlstash-cli plugins remove <name>` deletes one, which brings the built-in
+back. **`pixlstash-cli plugins test` checks captioning plugins only**, so there
+is no equivalent one-command check here; the loop is the Filters menu, which
+needs no restart.
+
 Plugin code runs unsandboxed, in the server process, with your permissions, and
 is re-executed constantly. Only install plugins you trust.
 
@@ -118,13 +126,14 @@ with `ast.literal_eval`, without importing the plugin, and importing a plugin
 runs its module body on the reader's machine, here on every Filters listing.
 What the source says and what the object carries must be the same thing.
 
-**PixlStash reads half the header.** `plugin_schema()` forwards `name`,
-`display_name` and `description` to the frontend, and nothing forwards
-`author`, `license` or `models`, so today those three are read by tooling
-around the plugin;
-[issue #961](https://github.com/Pikselkroken/pixlstash/issues/961) tracks the
-host side. The contract tests in this repository require all six regardless,
-and a plugin that ships them now needs no edit when the host catches up.
+**`ImagePlugin` on `develop` declares all six**, `author` and `license`
+defaulting to `""` and `models` to `[]`, and `plugin_schema()` forwards them
+([issue #961](https://github.com/Pikselkroken/pixlstash/issues/961)). It also
+raises `TypeError` when `models` is not a list of dicts, rather than letting
+the shape reach a caller. On 1.9.0 the base class has none of this, and the
+three attributes sit there unread, which costs nothing: write them anyway and
+they start being shown the day the host is upgraded. The contract tests in
+this repository require all six and reject an empty one.
 
 ## 3. `parameter_schema()`, the settings UI
 

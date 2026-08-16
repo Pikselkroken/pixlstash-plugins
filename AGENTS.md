@@ -182,7 +182,16 @@ and the `license` and `models` fields of the header saying the same thing.
 pip install -r requirements-dev.txt
 pip install --no-deps pixlstash
 ruff format . && ruff check . && pytest
+
+# With PixlStash itself installed, for a captioning plugin:
+pixlstash-cli plugins test plugins/captioning/my_captioner/
 ```
+
+`plugins test` imports the plugin the way the server does and checks the
+parameter schema is one the settings screen can render, which `pytest` here
+cannot see and which fails quietly in the app. It runs the plugin unsandboxed,
+covers captioning plugins only, and is not available unless PixlStash is
+installed; say whether you ran it.
 
 The contract tests are the bar. **A plugin whose dependencies are not
 installed is skipped entirely**, so a green run proves nothing about a plugin
