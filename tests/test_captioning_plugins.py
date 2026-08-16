@@ -5,11 +5,17 @@ They import each plugin folder the way PixlStash does and check it against the
 name that does not collide with a built-in, and an inference call that returns
 the documented shape.
 
-A plugin whose third-party dependencies are not installed is skipped *entirely*:
-CI installs nothing from a plugin's ``requirements.txt``, and every check here
-needs the plugin class, which needs the import. So CI is a real bar only for
-plugins that run on a bare runner; for anything wrapping a model, human review
-is the bar. Skipped plugins are named in the pytest output.
+They come in two halves, split because CI can run only one of them on a plugin
+that wraps a model. ``test_plugin_structure`` needs the plugin class and
+nothing else. ``test_plugin_runtime`` calls ``init()`` and then inference,
+which for a real model means a checkpoint and a GPU that no runner has, so CI
+runs it only on the bare runner, where a plugin with dependencies skips anyway.
+Run locally against an environment that has those dependencies, it is where a
+model-backed plugin actually gets exercised.
+
+A plugin whose third-party dependencies are not installed is skipped entirely
+rather than half-checked: every check needs the plugin class and the class
+needs the import. Skipped plugins are named in the pytest output.
 """
 
 from __future__ import annotations
@@ -115,7 +121,8 @@ def test_every_plugin_is_a_package_with_a_readme():
 
 
 @pytest.mark.parametrize("directory", CAPTIONING_PLUGINS, ids=lambda p: p.name)
-def test_plugin_contract(directory: Path, image_paths: list[str]):
+def test_plugin_structure(directory: Path):
+    """Everything checkable from the class alone, with no model loaded."""
     classes = load_plugin_classes(directory)
     assert classes, f"{directory.name} defines no concrete TaggerPlugin subclass"
 
@@ -141,6 +148,19 @@ def test_plugin_contract(directory: Path, image_paths: list[str]):
         # The registry exercises this once at load; a raise here takes down the
         # settings screen, so it is worth asserting.
         assert plugin.plugin_schema()["name"] == name
+
+
+@pytest.mark.parametrize("directory", CAPTIONING_PLUGINS, ids=lambda p: p.name)
+def test_plugin_runtime(directory: Path, image_paths: list[str]):
+    """Loading the model and running one batch through it."""
+    classes = load_plugin_classes(directory)
+    # Repeated from test_plugin_structure on purpose: without it a folder that
+    # defines no plugin class runs an empty loop and reports a pass.
+    assert classes, f"{directory.name} defines no concrete TaggerPlugin subclass"
+
+    for cls in classes:
+        plugin = cls()
+        name = (plugin.name or "").strip()
 
         # PixlStash calls setup() via hasattr before init(), so a plugin whose
         # init depends on it must not be exercised without it.

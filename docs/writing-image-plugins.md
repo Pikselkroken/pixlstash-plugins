@@ -231,7 +231,9 @@ Whatever you import must already be installed in the environment PixlStash runs
 in. PixlStash reads no manifest and installs nothing for you; a missing import
 shows up as a load error. Say what you need in your plugin's README and list it
 in a `requirements.txt` beside it. Pillow, numpy and OpenCV are always
-available, since the base class imports them.
+available, since the base class imports them. This repository's CI does read
+that file, installing it on its own to check the plugin's structure, so a
+`requirements.txt` that will not install fails the build.
 
 Import only `pixlstash.image_plugins.base`, and only its public surface. The
 underscore-prefixed helpers on `ImagePlugin` (`_coerce_number` and friends) are

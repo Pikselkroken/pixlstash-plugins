@@ -189,6 +189,12 @@ installed is skipped entirely**, so a green run proves nothing about a plugin
 that needs a model: say what you actually ran it against, which model version,
 and on what hardware.
 
+CI has a second job that installs your `requirements.txt` on its own and runs
+`test_plugin_structure` for your plugin, so keep that file installable and
+keep `parameter_schema()` free of anything that needs the model. CI still
+never calls `init()` or inference on a plugin with dependencies: no runner has
+a GPU, and mocking the model would only test the mock.
+
 Note that captioning plugins load only on PixlStash `develop`, targeted at
 1.10.0. Repeat that callout in the plugin README. Image plugins work on 1.9.0.
 
