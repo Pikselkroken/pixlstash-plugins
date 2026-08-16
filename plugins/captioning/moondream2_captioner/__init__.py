@@ -74,6 +74,13 @@ DEFAULT_LENGTH = "normal"
 DEFAULT_QUESTION = "Describe what is happening in this image."
 DEFAULT_MAX_TOKENS = 256
 
+# One pair of bounds, spent twice: the schema hands them to the settings dialog,
+# and generate_descriptions clamps to them because the host validates a saved
+# value's name and not its range. Declaring them in both places invites the two
+# to drift, and the clamp is the half nobody sees drift.
+MIN_MAX_TOKENS = 16
+MAX_MAX_TOKENS = 1024
+
 # `caption()` raises ValueError for a length the checkpoint has no prompt
 # template for. All three are present in this revision (checked against
 # `config.tokenizer.templates["caption"]`), though the model card documents
@@ -186,8 +193,8 @@ class Moondream2Captioner(TaggerPlugin):
                 "label": "Max tokens",
                 "type": "integer",
                 "default": DEFAULT_MAX_TOKENS,
-                "min": 16,
-                "max": 1024,
+                "min": MIN_MAX_TOKENS,
+                "max": MAX_MAX_TOKENS,
                 "step": 16,
                 "description": (
                     "Upper bound on the generated text. A normal caption rarely "
@@ -359,11 +366,13 @@ class Moondream2Captioner(TaggerPlugin):
             max_tokens = int(parameters.get("max_tokens", DEFAULT_MAX_TOKENS))
         except (TypeError, ValueError):
             max_tokens = DEFAULT_MAX_TOKENS
-        # Clamped to the bounds the schema declares, because the host validates
-        # a saved value's name but not its range: a hand-edited settings file
+        # Clamped to both bounds the schema declares, because the host validates
+        # a saved value's name but not its range. A hand-edited settings file
         # holding 10_000_000 would otherwise generate until it hit the context
-        # limit, once per picture, and stop_event cannot interrupt one image.
-        max_tokens = min(1024, max(1, max_tokens))
+        # limit, once per picture, and stop_event cannot interrupt one image;
+        # one holding 3 would cut every caption off mid-phrase while the dialog
+        # went on insisting the floor was 16.
+        max_tokens = min(MAX_MAX_TOKENS, max(MIN_MAX_TOKENS, max_tokens))
         # "variant" has to be present: Moondream reads `settings["variant"]`
         # with a subscript, not a `.get`, so a settings dict without it raises
         # KeyError before it reaches the model.
