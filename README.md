@@ -37,10 +37,71 @@ file, since that loader scans for `.py` and cannot see a folder.
 
 ## Installing a plugin
 
+### With `pixlstash-cli`
+
+PixlStash's own CLI installs from this repository by name, so there is nothing
+to copy and no path to get wrong:
+
+```bash
+pixlstash-cli plugins install hello_world_captioner   # a folder name under plugins/
+pixlstash-cli plugins install ./my_captioner/         # or a local folder, .py or .zip
+pixlstash-cli plugins list                            # what is installed, and where
+pixlstash-cli plugins remove hello_world_captioner
+```
+
+`pixlstash-cli` comes with PixlStash rather than with this repository; the
+[PixlStash README](https://github.com/Pikselkroken/pixlstash#installing-plugins)
+says how to reach it from a Docker or desktop install, where it is not on your
+`PATH`.
+
+`install` reads the source without importing it, works out from the base class
+whether it is a captioning plugin or an image filter, and copies it into the
+matching directory under the plugin's own `name`. It prints the plan and asks
+before writing: `--yes` skips the question, `--dry-run` stops after the plan,
+`--force` replaces a plugin of that name, and `--strict` turns every warning
+into a refusal. `--ref` takes a branch, tag or commit of this repository and
+defaults to `main`; it cannot be pointed at a different repository.
+
+**A plugin's `requirements.txt` is not installed unless you pass
+`--with-deps`**, so a plugin with dependencies loads only once you have
+installed them into the environment PixlStash runs in.
+
+`plugins list` prints both plugin directories and what is in them, marking a
+plugin that will not load as it stands with `!` and one that replaces a
+built-in with `*`. It imports nothing, so a failure that only happens at import
+(a missing dependency, say) does not show up there. `plugins remove` prints the
+exact path and asks before deleting; `--kind captioning|image` picks the
+directory when both hold the name, and removing an image plugin that replaced a
+built-in brings the built-in back.
+
+Restart PixlStash Server after installing or removing a captioning plugin.
+Image filters are re-scanned on the next Filters listing.
+
+### Testing a plugin you are writing
+
+```bash
+pixlstash-cli plugins test ./plugins/captioning/my_captioner/
+pixlstash-cli plugins test ./plugins/captioning/my_captioner/ --image ~/Pictures/one.jpg
+```
+
+`plugins test` loads the plugin the way the server does at start-up, registers
+every plugin class it defines, and checks that the parameter schema is one the
+settings screen can render, which the server does not check and which fails
+quietly when it is wrong. A `problem:` means it will not work and exits 1; a
+`warning:` means it works and could be tidier, and exits 0. `--image` runs one
+picture through it as well, which loads the model.
+
+Two limits worth knowing: it checks captioning plugins only, not image filters,
+and **it is a development aid rather than a security scanner**. It *runs* the
+plugin, unsandboxed, with your permissions, exactly as the server would. Only
+test a plugin you would have installed anyway.
+
+### By hand
+
 1. Find the user plugin directory. **Take the exact path from PixlStash**, not
    from this table, because a folder in the wrong place is skipped in silence.
-   Captioning paths are shown in **Settings → Auto-tagging**; both are logged at
-   start-up.
+   `pixlstash-cli plugins list` prints both, captioning paths are shown in
+   **Settings → Auto-tagging**, and both are logged at start-up.
 
    | OS | Captioning plugins | Image plugins |
    |----|--------------------|---------------|
@@ -102,11 +163,16 @@ at the documentation of the model or API you want wrapped, for example:
 
 [`AGENTS.md`](AGENTS.md) (and its identical twin [`CLAUDE.md`](CLAUDE.md)) is
 the brief it should follow: the rules, a skeleton, and the traps. Review what
-comes back against the contract, and remember that CI cannot check a plugin
-whose model it cannot install.
+comes back against the contract, and remember that once a plugin needs a model,
+CI checks its shape and never the model behind it.
 
-Four things apply to both:
+Five things apply to both:
 
+- **Both kinds carry the same header.** `name`, `display_name`, `description`,
+  `author`, `license` and `models` on the class, as plain literals, so a tool
+  can say what a plugin is and what it pulls in without importing it. `models`
+  is the one people care about: your MIT license says nothing about the weights
+  the plugin downloads.
 - **`parameter_schema()` *is* the settings UI.** PixlStash builds the dialog
   from the JSON you return.
 - **Values are not type-checked.** Prefer `params.get(key, default)` over
@@ -133,15 +199,19 @@ cp -r plugins/image/hello_world_stamp plugins/image/my_filter
 mv plugins/image/my_filter/hello_world_stamp.py plugins/image/my_filter/my_filter.py
 ```
 
-Then give the class a new `name`, rewrite the folder's `README.md`, and run
-`pytest`; the contract tests will tell you what you missed.
+Then give the class a new `name` and `display_name`, put your own `author`,
+`license` and `models` in the header (an example plugin's say the example
+plugin's, and no test can know that is wrong), rewrite the folder's
+`README.md`, and run `pytest`; the contract tests will tell you what else you
+missed.
 
 List dependencies in the plugin's README and in a `requirements.txt` beside it.
-That file is documentation for whoever installs the plugin; neither PixlStash
-nor CI reads it. Prefer what PixlStash already ships (`torch`, `transformers`,
-`numpy`, `pillow`, `opencv-python`, `requests`, …), and pin any model revision
-you download, because an unpinned HuggingFace ref is a silent supply-chain
-change.
+PixlStash never reads that file, so it is documentation for whoever installs the
+plugin, but CI does: it installs each plugin's `requirements.txt` on its own to
+run the structure checks, so a file that does not install turns the build red.
+Prefer what PixlStash already ships (`torch`, `transformers`, `numpy`,
+`pillow`, `opencv-python`, `requests`, …), and pin any model revision you
+download, because an unpinned HuggingFace ref is a silent supply-chain change.
 
 ### Running the tests
 
@@ -153,18 +223,42 @@ pytest
 ```
 
 The suites check shapes, not behaviour: that a plugin imports, defines the right
-kind of class, has a unique name that is not a built-in's, has a well-formed
-parameter schema, and returns the documented shape from its inference call (one
-entry per input, in order, and a broken picture that does not take the batch
-down with it).
+kind of class, has a unique name that is not a built-in's, carries the header,
+has a well-formed parameter schema, and returns the documented shape from its
+inference call (one entry per input, in order, and a broken picture that does
+not take the batch down with it).
 
-**A plugin whose dependencies are not installed is skipped entirely**, and CI
-installs nothing from a plugin's `requirements.txt`: every check needs the
-plugin class, and the class needs the import, so skipped means unchecked. CI is
-a real bar only for plugins that run on a bare runner; for anything wrapping a
-model, human review is the bar, and the pytest output names what was skipped.
-Nor is CI a security boundary, since `pytest` imports and runs a pull request's
-plugin code. Read a plugin before you merge it.
+**A plugin whose dependencies are not installed is skipped entirely**: every
+check needs the plugin class, and the class needs the import, so skipped means
+unchecked rather than half-checked. The pytest output names what was skipped.
+
+### What CI checks, and what it cannot
+
+Two jobs, and the split matters if you are contributing a plugin that wraps a
+model:
+
+- **Lint and the full suite**, on a bare runner. `ruff check`,
+  `ruff format --check`, and `pytest`. No plugin's `requirements.txt` is
+  installed here, so a plugin with dependencies is skipped in this job.
+- **Structure, per plugin.** For every plugin that ships a `requirements.txt`,
+  CI builds a throwaway virtualenv, installs *that* plugin's requirements into
+  it, and runs `test_plugin_structure` for it. One environment per plugin
+  rather than the union of all of them, because the union takes longer with
+  every plugin added and goes red when two plugins that never meet disagree on
+  a version.
+
+What that second job checks is the class and the schema: a `select` with no
+`options`, a `type` the settings dialog cannot render, a module that defines no
+plugin class, a `parameter_schema()` that raises. What it does not check is
+`init()`, any download, or inference. A runner has no GPU and pulling a
+multi-GB checkpoint per job is not a sensible use of anyone's minutes, and a
+mocked model would only prove the mock works. So **for anything wrapping a
+model, human review and your own testing are the bar**, which is why a pull
+request has to say what it was run against.
+
+Neither job is a security boundary: both `pip install` and `pytest` run code
+out of the pull request, one from its `requirements.txt` and one from the
+plugin itself. Read a plugin before you merge it.
 
 ## Contributing a plugin
 
@@ -173,16 +267,23 @@ Plugins are welcome. Open a pull request against `main`:
 1. **One plugin per pull request**, as one `snake_case` folder under
    `plugins/captioning/` or `plugins/image/`. A captioning folder holds
    `__init__.py`; an image folder holds one `.py` file named after it.
-2. **Include a `README.md`** covering what the plugin does, its dependencies,
+2. **Fill in the header** on the plugin class: `name`, `display_name`,
+   `description`, `author`, `license` and `models`, as plain literals. The
+   contract tests require all six.
+3. **Include a `README.md`** covering what the plugin does, its dependencies,
    its parameters and its license, plus a `requirements.txt` if it needs
-   anything PixlStash does not ship. Copy the layout from an example.
-3. **Run `pytest`, `ruff check .` and `ruff format .`** before you push.
-4. **Say what you tested it against**: which model, which PixlStash version, on
-   what hardware. A reviewer cannot download every model, and CI skips any
-   plugin with a dependency, so this is what makes a plugin reviewable.
-5. **Only contribute code you may license under MIT.** If your plugin wraps a
-   model with its own license or usage terms, say so in its README; that is the
-   user's decision to make.
+   anything PixlStash does not ship. Copy the layout from an example, and keep
+   its License section and the header saying the same thing.
+4. **Run `pytest`, `ruff check .` and `ruff format .`** before you push.
+5. **Say what you tested it against**: which model, which PixlStash version, on
+   what hardware. A reviewer cannot download every model, and CI checks the
+   structure of a model-backed plugin but never runs the model, so this is what
+   makes a plugin reviewable.
+6. **Only contribute code you may license under an OSI-approved open source
+   license.** If your plugin wraps a model with its own license or usage terms,
+   say so in its README; that is the user's decision to make and the license
+   should be clearly marked in the header, following the pattern in the example
+   plugins.
 
 Turned down: a plugin that phones home, that reads or writes outside the paths
 it is given, that pulls in a dependency it does not need, or that duplicates an
@@ -193,4 +294,4 @@ first. Bug reports and fixes for the plugins already here are just as welcome.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license.
+MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license or OSI-approved licenses.

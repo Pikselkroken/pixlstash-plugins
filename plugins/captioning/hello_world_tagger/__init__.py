@@ -23,6 +23,11 @@ class HelloWorldTagger(TaggerPlugin):
     name = "hello_world_tagger"
     display_name = "Hello World Tagger"
     description = "Applies a fixed list of tags to every image. Example plugin."
+    # The header a tool reads to describe this plugin. Keep the values literal:
+    # they are meant to be readable without importing the plugin.
+    author = "PixlStash plugins <https://github.com/Pikselkroken/PixlStash-plugins>"
+    license = "MIT"
+    models = []  # no model to declare; a real one lists {"name", "license"}
 
     supports_tags = True
     supports_descriptions = False

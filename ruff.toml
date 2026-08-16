@@ -18,4 +18,16 @@ ignore = [
     # a failure must cost one image, not the whole batch. Third-party model
     # code raises whatever it likes, so the catch cannot be narrowed honestly.
     "BLE001",
+    # The `models` header field is a list literal on the class, which RUF012
+    # wants annotated `ClassVar`. It is declarative metadata, never mutated,
+    # and meant to be read straight off the source, so an import and an
+    # annotation in every plugin buy nothing. Ruff's other suggestion, a tuple,
+    # is why the header is specified as a list rather than left open: a
+    # one-entry tuple needs a trailing comma, in a field every contributor
+    # copies and edits, and one shape is one thing to document. The rule would
+    # otherwise fire on the required header of every plugin in the repository,
+    # which is a rule nobody would keep. The cost: a plugin holding mutable
+    # class-level state (`_cache = {}`) is no longer flagged, so watch for that
+    # when reviewing one.
+    "RUF012",
 ]
