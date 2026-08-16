@@ -320,19 +320,31 @@ class OpenAICompatibleCaptioner(TaggerPlugin):
         return False
 
     def init(self, parameters: dict[str, Any]) -> None:
-        """No model to load. The settings are read per request instead."""
-        self._ready = True
+        """Check the settings can be sent with. There is no model to load.
+
+        Called before every batch, and idempotent because it holds nothing:
+        it re-reads the endpoint each time, so a setting corrected between
+        batches is picked up here.
+        """
+        self._ready = _base_url(parameters) is not None
+        if not self._ready:
+            logger.warning(
+                "%s: the endpoint setting is not a usable http(s) URL, so "
+                "nothing can be captioned until it is corrected",
+                self.name,
+            )
 
     def unload(self) -> None:
         self._ready = False
 
     def is_loaded(self) -> bool:
-        """Whether the plugin is ready to send requests.
+        """Whether the last :meth:`init` found settings it can send with.
 
-        Not whether the endpoint is up: the settings table polls this, and
-        ``plugin_schema()`` calls it on the request thread, so probing the
-        network here would block the settings screen on every poll.
-        ``needs_download()`` is where the endpoint gets checked.
+        Not whether the endpoint is up, and nothing here checks that: the
+        settings table polls this, and ``plugin_schema()`` calls it on the
+        request thread, so a network probe would block the settings screen on
+        every poll. ``needs_download()`` is no place for one either, for the
+        reasons written there. A failed request says why in the server log.
         """
         return self._ready
 
@@ -467,7 +479,10 @@ if __name__ == "__main__":
     # The batch loop, with the network and the disk stubbed out. Both stubs
     # replace a module global, which is what the loop calls.
     plugin = OpenAICompatibleCaptioner()
+    plugin.init({"endpoint": "nope"})
+    assert plugin.is_loaded() is False, "unusable settings are not 'loaded'"
     plugin.init({})
+    assert plugin.is_loaded() is True
     paths = [f"/home/me/{index}.png" for index in range(8)]
     sent = []
 

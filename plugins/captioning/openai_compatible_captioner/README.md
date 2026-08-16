@@ -51,10 +51,10 @@ None. Standard library only (`urllib.request`, `base64`, `json`,
 |-----------|------|---------|---------|
 | `endpoint` | string | `http://localhost:11434/v1` | Base URL of the server. LM Studio is `http://localhost:1234/v1`. `/v1` is appended if you leave it off. Anything unusable, a blank field included, captions nothing and says so in the log, rather than falling back to some other server. It is a base URL, so it may not carry a query string. |
 | `model` | string | `qwen3-vl:8b` | Model id as the server reports it. Must be a vision model, and must already be pulled. |
-| `prompt` | textarea | `Describe this image in one or two sentences. …` | Instruction sent with every image. |
+| `prompt` | textarea | `Describe this image in one or two sentences. ...` | Instruction sent with every image. |
 | `max_tokens` | integer | `256` | Upper bound on caption length, reasoning included. Clamped to 16-4096. See the note below before lowering it. |
 | `timeout_seconds` | integer | `120` | Per-image request timeout. Clamped to 5-900. |
-| `api_key` | string | *(empty)* | Sent as `Authorization: Bearer …`. Empty for a local Ollama or LM Studio, which need none. |
+| `api_key` | string | *(empty)* | Sent as `Authorization: Bearer ...`. Empty for a local Ollama or LM Studio, which need none. |
 
 **The API key is stored in plain text.** Plugin settings live in your
 `tagger_settings` JSON, and PixlStash has no secret storage for them, so the
@@ -114,13 +114,16 @@ you, so read the ranges above rather than the settings file.
   on the wire, over localhost included, and is held in memory a few times over
   while the request is built. Downscaling first would need Pillow and a
   judgement call about quality; a smaller model is the cheaper answer.
-- **`is_loaded()` reports that the plugin is configured, not that the server
-  is up**, and `needs_download()` is always `False`. Neither is a health check,
-  and there is no download button: pulling a multi-gigabyte model is the server
-  admin's decision, not a button in an image manager. There is nowhere useful
-  to put an endpoint check today, either. `is_loaded()` is polled by the
-  settings table and called by `plugin_schema()` on the request thread, so a
-  network probe there would block the settings screen; and `needs_download()`
+- **`is_loaded()` reports that the settings can be sent with, not that the
+  server is up.** `init()` checks the endpoint and nothing else, so a field
+  the plugin cannot use shows as not loaded rather than as ready-and-silent;
+  correct it and the next batch picks it up. `needs_download()` is always
+  `False`, and neither method is a health check. There is no download button
+  either: pulling a multi-gigabyte model is the server admin's decision, not a
+  button in an image manager. There is nowhere useful to put an endpoint check
+  today, either. `is_loaded()` is polled by the settings table and called by
+  `plugin_schema()` on the request thread, so a network probe there would
+  block the settings screen; and `needs_download()`
   is called by exactly one route, the download route, with no parameters, so a
   check there would test the default endpoint rather than yours and a `True`
   would start a background "download" that does nothing. **A failed request
