@@ -53,6 +53,15 @@ guides, the tests or CI.
   re-executes the module on every Filters listing and every run.
 - **Pin any model revision you download.** An unpinned HuggingFace ref is a
   silent supply-chain change.
+- **Fill in the header.** `name`, `display_name`, `description`, `author`,
+  `license` and `models` on the class, as literals a reader can take without
+  running the module: no module constant, no f-string, nothing set in
+  `__init__`. `author` is `Your Name <your.name@example.com>`. Ask who to
+  credit rather than inventing a person or an address, and when the answer is
+  that there is nobody to email, put the project's `http(s)` URL between the
+  brackets, as the example plugins do. `models` lists one
+  `{"name": ..., "license": ...}` per model or remote service, plus the
+  `"revision"` you pinned, and is empty only when the plugin uses none.
 - **Pick a free name.** Built-in captioning names are `wd14`,
   `pixlstash_tagger`, `florence2` and `joycaption`; built-in image names are
   `blur_sharpen`, `brightness_contrast`, `colour_filter`, `pixelate`, `rotate`
@@ -83,6 +92,16 @@ class MyCaptioner(TaggerPlugin):
     name = "my_captioner"
     display_name = "My Captioner"
     description = "One sentence, shown in the settings table."
+    # The header, read without importing the plugin: keep the values literal.
+    author = "Your Name <your.name@example.com>"
+    license = "MIT"
+    models = [
+        {
+            "name": "acme/tiny-vlm",
+            "license": "Apache-2.0",
+            "revision": "PIN_ME",
+        },
+    ]
 
     supports_descriptions = True
     supports_tags = False
@@ -154,7 +173,8 @@ Copy the layout from an example plugin. It needs: what the plugin does, an
 **Install** section, **Dependencies** (matching `requirements.txt` exactly),
 a **Parameters** table with one row per schema entry, and **License**. If you
 wrap a model with its own license or usage terms, say so, and if the model
-sends images to a remote service, say that first and plainly.
+sends images to a remote service, say that first and plainly. Keep that section
+and the `license` and `models` fields of the header saying the same thing.
 
 ## Before you call it done
 
@@ -162,12 +182,27 @@ sends images to a remote service, say that first and plainly.
 pip install -r requirements-dev.txt
 pip install --no-deps pixlstash
 ruff format . && ruff check . && pytest
+
+# With PixlStash itself installed, for a captioning plugin:
+pixlstash-cli plugins test plugins/captioning/my_captioner/
 ```
+
+`plugins test` imports the plugin the way the server does and checks the
+parameter schema is one the settings screen can render, which `pytest` here
+cannot see and which fails quietly in the app. It runs the plugin unsandboxed,
+covers captioning plugins only, and is not available unless PixlStash is
+installed; say whether you ran it.
 
 The contract tests are the bar. **A plugin whose dependencies are not
 installed is skipped entirely**, so a green run proves nothing about a plugin
 that needs a model: say what you actually ran it against, which model version,
 and on what hardware.
+
+CI has a second job that installs your `requirements.txt` on its own and runs
+`test_plugin_structure` for your plugin, so keep that file installable and
+keep `parameter_schema()` free of anything that needs the model. CI still
+never calls `init()` or inference on a plugin with dependencies: no runner has
+a GPU, and mocking the model would only test the mock.
 
 Note that captioning plugins load only on PixlStash `develop`, targeted at
 1.10.0. Repeat that callout in the plugin README. Image plugins work on 1.9.0.
