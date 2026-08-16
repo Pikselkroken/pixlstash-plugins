@@ -102,8 +102,8 @@ at the documentation of the model or API you want wrapped, for example:
 
 [`AGENTS.md`](AGENTS.md) (and its identical twin [`CLAUDE.md`](CLAUDE.md)) is
 the brief it should follow: the rules, a skeleton, and the traps. Review what
-comes back against the contract, and remember that CI cannot check a plugin
-whose model it cannot install.
+comes back against the contract, and remember that once a plugin needs a model,
+CI checks its shape and never the model behind it.
 
 Four things apply to both:
 
@@ -137,11 +137,12 @@ Then give the class a new `name`, rewrite the folder's `README.md`, and run
 `pytest`; the contract tests will tell you what you missed.
 
 List dependencies in the plugin's README and in a `requirements.txt` beside it.
-That file is documentation for whoever installs the plugin; neither PixlStash
-nor CI reads it. Prefer what PixlStash already ships (`torch`, `transformers`,
-`numpy`, `pillow`, `opencv-python`, `requests`, …), and pin any model revision
-you download, because an unpinned HuggingFace ref is a silent supply-chain
-change.
+PixlStash never reads that file, so it is documentation for whoever installs the
+plugin, but CI does: it installs each plugin's `requirements.txt` on its own to
+run the structure checks, so a file that does not install turns the build red.
+Prefer what PixlStash already ships (`torch`, `transformers`, `numpy`,
+`pillow`, `opencv-python`, `requests`, …), and pin any model revision you
+download, because an unpinned HuggingFace ref is a silent supply-chain change.
 
 ### Running the tests
 
@@ -158,13 +159,37 @@ parameter schema, and returns the documented shape from its inference call (one
 entry per input, in order, and a broken picture that does not take the batch
 down with it).
 
-**A plugin whose dependencies are not installed is skipped entirely**, and CI
-installs nothing from a plugin's `requirements.txt`: every check needs the
-plugin class, and the class needs the import, so skipped means unchecked. CI is
-a real bar only for plugins that run on a bare runner; for anything wrapping a
-model, human review is the bar, and the pytest output names what was skipped.
-Nor is CI a security boundary, since `pytest` imports and runs a pull request's
-plugin code. Read a plugin before you merge it.
+**A plugin whose dependencies are not installed is skipped entirely**: every
+check needs the plugin class, and the class needs the import, so skipped means
+unchecked rather than half-checked. The pytest output names what was skipped.
+
+### What CI checks, and what it cannot
+
+Two jobs, and the split matters if you are contributing a plugin that wraps a
+model:
+
+- **Lint and the full suite**, on a bare runner. `ruff check`,
+  `ruff format --check`, and `pytest`. No plugin's `requirements.txt` is
+  installed here, so a plugin with dependencies is skipped in this job.
+- **Structure, per plugin.** For every plugin that ships a `requirements.txt`,
+  CI builds a throwaway virtualenv, installs *that* plugin's requirements into
+  it, and runs `test_plugin_structure` for it. One environment per plugin
+  rather than the union of all of them, because the union takes longer with
+  every plugin added and goes red when two plugins that never meet disagree on
+  a version.
+
+What that second job checks is the class and the schema: a `select` with no
+`options`, a `type` the settings dialog cannot render, a module that defines no
+plugin class, a `parameter_schema()` that raises. What it does not check is
+`init()`, any download, or inference. A runner has no GPU and pulling a
+multi-GB checkpoint per job is not a sensible use of anyone's minutes, and a
+mocked model would only prove the mock works. So **for anything wrapping a
+model, human review and your own testing are the bar**, which is why a pull
+request has to say what it was run against.
+
+Neither job is a security boundary: both `pip install` and `pytest` run code
+out of the pull request, one from its `requirements.txt` and one from the
+plugin itself. Read a plugin before you merge it.
 
 ## Contributing a plugin
 
@@ -178,8 +203,9 @@ Plugins are welcome. Open a pull request against `main`:
    anything PixlStash does not ship. Copy the layout from an example.
 3. **Run `pytest`, `ruff check .` and `ruff format .`** before you push.
 4. **Say what you tested it against**: which model, which PixlStash version, on
-   what hardware. A reviewer cannot download every model, and CI skips any
-   plugin with a dependency, so this is what makes a plugin reviewable.
+   what hardware. A reviewer cannot download every model, and CI checks the
+   structure of a model-backed plugin but never runs the model, so this is what
+   makes a plugin reviewable.
 5. **Only contribute code you may license under MIT.** If your plugin wraps a
    model with its own license or usage terms, say so in its README; that is the
    user's decision to make.

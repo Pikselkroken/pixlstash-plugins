@@ -5,8 +5,12 @@ exactly one, named after the folder. The checks mirror what
 ``ImagePluginManager`` does at load, plus what ``run`` promises: one output per
 input, same order, and a per-image failure that does not abort the batch.
 
-As with the captioning suite, a plugin whose dependencies are not installed is
-skipped entirely rather than half-checked.
+They split in two the same way the captioning suite does, and for the same
+reason: ``test_plugin_structure`` needs the class and nothing else, while the
+rest push pictures through ``run``.
+
+A plugin whose dependencies are not installed is skipped entirely rather than
+half-checked.
 """
 
 from __future__ import annotations
@@ -130,7 +134,8 @@ def test_every_plugin_is_one_py_file_named_after_its_folder():
 
 
 @pytest.mark.parametrize("directory", IMAGE_PLUGINS, ids=lambda p: p.name)
-def test_plugin_contract(directory: Path, images: list[Image.Image]):
+def test_plugin_structure(directory: Path):
+    """Everything checkable from the class alone, with no picture touched."""
     plugin = load_plugin_class(directory)()
 
     name = (plugin.name or "").strip()
@@ -151,21 +156,32 @@ def test_plugin_contract(directory: Path, images: list[Image.Image]):
     )
     assert plugin.plugin_schema()["name"] == name
 
-    if plugin.supports_images:
-        defaults = {f["name"]: f["default"] for f in plugin.parameter_schema()}
-        out = plugin.run(list(images), defaults)
-        assert isinstance(out, list)
-        assert len(out) == len(images), (
-            f"{name}: run() must return one image per input, in the same order"
-        )
-        assert all(isinstance(item, Image.Image) for item in out)
-        # Output size is deliberately NOT asserted: a crop, a scaler or an
-        # upscaler changes it, and the contract is the length and the order.
-
     if plugin.supports_videos:
         assert type(plugin).run_video is not ImagePlugin.run_video, (
             f"{name}: supports_videos is True but run_video is not overridden"
         )
+
+
+@pytest.mark.parametrize("directory", IMAGE_PLUGINS, ids=lambda p: p.name)
+def test_plugin_runtime(directory: Path, images: list[Image.Image]):
+    """One batch of pictures through ``run``."""
+    plugin = load_plugin_class(directory)()
+    name = (plugin.name or "").strip()
+
+    # Skipped rather than passed: run() takes pictures, so a video-only plugin
+    # has nothing to answer for here, and a silent pass would read as one.
+    if not plugin.supports_images:
+        pytest.skip(f"{name}: video only, so run() is not exercised")
+
+    defaults = {f["name"]: f["default"] for f in plugin.parameter_schema()}
+    out = plugin.run(list(images), defaults)
+    assert isinstance(out, list)
+    assert len(out) == len(images), (
+        f"{name}: run() must return one image per input, in the same order"
+    )
+    assert all(isinstance(item, Image.Image) for item in out)
+    # Output size is deliberately NOT asserted: a crop, a scaler or an
+    # upscaler changes it, and the contract is the length and the order.
 
 
 def test_image_plugin_names_are_unique():

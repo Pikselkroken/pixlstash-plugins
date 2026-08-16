@@ -29,10 +29,70 @@ jobs:
 
       # Note on what this job is and is not. It does NOT install a plugin's own
       # requirements.txt, so a plugin with third-party dependencies is skipped
-      # entirely by the contract tests: skipped means unchecked, not
-      # half-checked. And it is not a security boundary either way, since pytest
-      # imports and runs a pull request's plugin code. Read a plugin before
-      # merging it.
+      # entirely by the contract tests here: skipped means unchecked, not
+      # half-checked. The plugin-structure job below is what covers those. And
+      # neither is a security boundary, since pytest imports and runs a pull
+      # request's plugin code. Read a plugin before merging it.
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -v
+
+  # Every plugin that declares a requirements.txt, checked in a venv of its own.
+  # Installing the union of every plugin's dependencies into one environment
+  # would get slower with each plugin added, and would go red on a version
+  # conflict between two plugins that never meet.
+  #
+  # Only the structure half runs: the schema, the class, the name. init() and
+  # inference want a multi-GB checkpoint and a GPU, and a runner has neither, so
+  # what CI can honestly say about a model-backed plugin stops here. Mocking the
+  # model to get a green tick would only test the mock.
+  plugin-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            plugins/*/*/requirements.txt
+
+      - name: Check each plugin against its own requirements
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          checked=0
+          for requirements in plugins/*/*/requirements.txt; do
+            directory=$(dirname "$requirements")
+            plugin=$(basename "$directory")
+            # PixlStash and plugin_dirs() both ignore these, so there is no
+            # test to select and nothing to check.
+            case "$plugin" in
+              .*|_*) echo "$plugin is not a loadable plugin folder"; continue ;;
+            esac
+            case "$(basename "$(dirname "$directory")")" in
+              captioning) suite=tests/test_captioning_plugins.py ;;
+              image) suite=tests/test_image_plugins.py ;;
+              *) echo "$directory is in neither plugin tree"; exit 1 ;;
+            esac
+            echo "--- $plugin ---"
+            venv=$(mktemp -d)
+            # requirements-dev.txt goes in too: pytest and the packages the two
+            # base classes import at load are the harness, not the plugin. Its
+            # pins are in that file, so a plugin that disagrees with one of them
+            # will say so here.
+            python -m venv "$venv"
+            "$venv/bin/pip" install -q -r requirements-dev.txt -r "$requirements"
+            "$venv/bin/pip" install -q --no-deps pixlstash
+            # The exact test id rather than -k: one plugin folder name is a
+            # substring of another often enough, and -k would then pull a second
+            # plugin's structure test into this plugin's environment, which is
+            # the cross-contamination the separate venvs exist to prevent.
+            "$venv/bin/pytest" -v "$suite::test_plugin_structure[$plugin]"
+            rm -rf "$venv"
+            checked=$((checked + 1))
+          done
+          echo "Plugins with their own requirements.txt: $checked"

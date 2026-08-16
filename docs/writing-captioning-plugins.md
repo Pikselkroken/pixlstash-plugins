@@ -200,6 +200,9 @@ Whatever your plugin imports must already be installed in the environment
 PixlStash runs in. PixlStash reads no manifest and installs nothing for you; a
 missing import shows up as that plugin's load error. Say what you need in your
 plugin's README, and list it in a `requirements.txt` beside its `__init__.py`.
+This repository's CI does read that file, installing it on its own to check the
+plugin's structure, so a `requirements.txt` that will not install fails the
+build.
 
 Import only `pixlstash.tagger_plugins.base`. Anything else in `pixlstash` is GPL
 (see §8), and private helpers (leading underscore) are not part of the plugin
