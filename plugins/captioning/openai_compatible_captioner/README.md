@@ -52,7 +52,7 @@ None. Standard library only (`urllib.request`, `base64`, `json`,
 | `endpoint` | string | `http://localhost:11434/v1` | Base URL of the server. LM Studio is `http://localhost:1234/v1`. `/v1` is appended if you leave it off. Anything unusable, a blank field included, captions nothing and says so in the log, rather than falling back to some other server. It is a base URL, so it may not carry a query string. |
 | `model` | string | `qwen3-vl:8b` | Model id as the server reports it. Must be a vision model, and must already be pulled. |
 | `prompt` | textarea | `Describe this image in one or two sentences. ...` | Instruction sent with every image. |
-| `max_tokens` | integer | `256` | Upper bound on caption length, reasoning included. Clamped to 16-4096. See the note below before lowering it. |
+| `max_tokens` | integer | `1024` | Upper bound on the tokens one reply may use, reasoning included. Clamped to 16-4096. See the note below before lowering it. |
 | `timeout_seconds` | integer | `120` | Per-image request timeout. Clamped to 5-900. |
 | `api_key` | string | *(empty)* | Sent as `Authorization: Bearer ...`. Empty for a local Ollama or LM Studio, which need none. |
 
@@ -96,11 +96,28 @@ you, so read the ranges above rather than the settings file.
   only by your resolver's own patience. Bounding the whole call needs a thread
   to cancel from, and this path has nothing to cancel with; the response size
   is capped instead, so a misbehaving server costs time and not memory.
-- **A thinking model spends `max_tokens` on its reasoning first.** With
-  `qwen3-vl:8b` at 256 the caption comes back fine, but at 20 or 40 the whole
-  budget goes to the reasoning block, the caption is empty, and every image
-  reports a failure. If captions come back missing for no visible reason,
-  raise **Max tokens** before suspecting anything else.
+- **A thinking model spends `max_tokens` on its reasoning first.** The budget
+  covers the whole reply on every server here: Ollama passes `max_tokens`
+  straight to `num_predict`, and LM Studio reports the same reasoning tokens
+  against it. A model that thinks for longer than the budget returns
+  `finish_reason: "length"`, an empty `content`, and its half-finished
+  reasoning in a field of its own, which is not a caption. That is why the
+  default is 1024 rather than something tighter: a 27B thinking model can
+  spend several hundred tokens before it writes the first word of the
+  description. The plugin logs that case by name, so if captions go missing,
+  read the server log and raise **Max tokens** if it says to. A budget is a
+  ceiling and not a target, so a model that does not think still stops at the
+  end of its sentence and a bigger one costs it nothing; a model that does
+  think now takes longer per image, and on a slow server that is a reason to
+  raise **Timeout** as well.
+- **Nothing is sent to turn thinking off**, because no field does it
+  everywhere. Ollama documents `reasoning_effort: "none"` and llama.cpp
+  documents both that and `chat_template_kwargs`, but
+  [LM Studio's chat-completions reference](https://lmstudio.ai/docs/developer/openai-compat/chat-completions)
+  lists neither, and its tracker has open reports of both being ignored. A
+  bigger budget works on all of them. If you would rather not spend it, turn
+  reasoning down in the server's own settings, or serve a model that does not
+  think.
 - **Videos are skipped**, since a video cannot go in a chat message. The type
   is decided by the file extension, so a file with no extension, or one your
   system's mime table does not know, is skipped the same way.
@@ -109,6 +126,15 @@ you, so read the ranges above rather than the settings file.
 - The reply is read as `choices[0].message.content`, and a server that answers
   with a list of content parts instead of a plain string has its text parts
   joined. Anything else in the reply is a failure for that image.
+- **Reasoning is never stored as a caption**, whichever way the server hands
+  it over: it is the model talking to itself about the picture, not a
+  description of it. In a field of its own (`reasoning_content` on LM Studio
+  and llama.cpp, `reasoning` on Ollama and newer vLLM) it is read only to
+  explain an empty caption in the log. Left inline in the content, which is
+  what a server with no reasoning parser for the model it is serving does, a
+  leading `<think>...</think>` block is stripped and what follows it is the
+  caption. A block that was cut off before it closed leaves nothing behind,
+  and that image is reported like any other empty caption.
 - **Images are sent at full size.** Nothing is downscaled here, because the
   servers do their own resizing. A 40-megapixel file spends time on base64 and
   on the wire, over localhost included, and is held in memory a few times over
@@ -127,7 +153,7 @@ you, so read the ranges above rather than the settings file.
   is called by exactly one route, the download route, with no parameters, so a
   check there would test the default endpoint rather than yours and a `True`
   would start a background "download" that does nothing. **A failed request
-  says why in the server log** — that is where to look when captions do not
+  says why in the server log**, which is where to look when captions do not
   appear.
 - **The model is whatever that tag points at.** `qwen3-vl:8b` on the server
   today and after the next `ollama pull` are not necessarily the same weights,
@@ -166,8 +192,14 @@ python plugins/captioning/openai_compatible_captioner/__init__.py
 ships no such entry point, and the CLI, like captioning plugin discovery
 itself, is on `develop` and unreleased.
 
-LM Studio was not tested. It serves the same API and the same request shape,
-and is documented here as the second target rather than as something verified.
+LM Studio was not tested here either. It serves the same API and the same
+request shape, and is documented as the second target rather than as something
+verified. The thinking-model handling above was written against a report of
+LM Studio serving a 27B reasoning model: `finish_reason: "length"`, an empty
+`content`, 256 reasoning tokens against a 256-token budget. The replies in the
+self-check are that shape, and the fix (a budget with room in it, plus a log
+line that names the cause) was checked against them offline, not against a
+running LM Studio.
 
 ## License
 

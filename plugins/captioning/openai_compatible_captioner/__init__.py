@@ -32,7 +32,10 @@ DEFAULT_PROMPT = (
     "Describe this image in one or two sentences. Describe only what is "
     "visible, and do not speculate."
 )
-DEFAULT_MAX_TOKENS = 256
+# High enough that a thinking model can finish reasoning and still reach the
+# caption. It is a ceiling and not a target, so a model that does not think
+# stops at the end of its sentence and spends nothing extra.
+DEFAULT_MAX_TOKENS = 1024
 MAX_TOKENS_MIN, MAX_TOKENS_MAX = 16, 4096
 DEFAULT_TIMEOUT = 120
 TIMEOUT_MIN, TIMEOUT_MAX = 5, 900
@@ -44,6 +47,14 @@ MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 # hold the worker for timeout x batch size. Give up after this many requests
 # fail in a row and fail the rest of the batch without waiting for them.
 MAX_CONSECUTIVE_FAILURES = 5
+
+
+class _NoCaption(ValueError):
+    """A reply in the documented shape that carried no caption.
+
+    Its own type because it says nothing about whether the server is
+    reachable, so it must leave the consecutive-failure breaker alone.
+    """
 
 
 class _NoRedirects(urllib.request.HTTPRedirectHandler):
@@ -170,14 +181,36 @@ def _payload(model: str, prompt: str, data_uri: str, max_tokens: int) -> dict[st
     }
 
 
-def _caption_text(body: Any) -> str | None:
+def _strip_reasoning(text: str) -> str:
+    """Drop a leading ``<think>`` block, reasoning left inline in the content.
+
+    A server with no reasoning parser for the model it serves, llama.cpp with
+    ``--reasoning-format none`` among them, returns the chain of thought in
+    ``content`` rather than in a field of its own. Storing it would caption
+    the picture with the model talking to itself. A budget that ran out
+    mid-thought leaves the block unclosed, and then nothing is left, which
+    the caller reports like any other empty caption.
+    """
+    text = text.strip()
+    if not text.startswith("<think>"):
+        return text
+    return text.partition("</think>")[2].strip()
+
+
+def _caption_text(body: Any) -> str:
     """Pull the caption out of a chat-completions reply.
 
     Indexed rather than ``.get()``-ed on purpose: a reply that is not the
     shape the API documents raises, and the caller turns that into one failed
-    image rather than a caption reading "None".
+    image rather than a caption reading "None". A reply that is the right
+    shape but carries no caption raises :class:`_NoCaption`, which says why.
     """
-    content = body["choices"][0]["message"]["content"]
+    choice = body["choices"][0]
+    message = choice["message"]
+    # ``content`` is fetched rather than indexed, alone among these: a reply
+    # that is all reasoning can leave the key out altogether, and that is a
+    # thinking model to report as one, not a malformed reply.
+    content = message.get("content")
     if isinstance(content, list):
         # Some servers answer with the list-of-parts shape requests use. Only
         # the string parts: a part carrying anything else is not text.
@@ -186,11 +219,27 @@ def _caption_text(body: Any) -> str | None:
             for part in content
             if isinstance(part, dict) and isinstance(part.get("text"), str)
         )
-    if not isinstance(content, str) or not content.strip():
-        # Empty is a failure, not a caption: a thinking model that spends the
-        # whole token budget on its reasoning lands here.
-        return None
-    return content.strip()
+    caption = _strip_reasoning(content) if isinstance(content, str) else ""
+    if not caption:
+        # Empty is a failure, not a caption, and the usual cause is a thinking
+        # model: reasoning is spent from the same max_tokens budget and is not
+        # a caption whichever way it comes back, in a field of its own
+        # (reasoning_content on LM Studio and llama.cpp, reasoning on Ollama
+        # and newer vLLM) or inline and stripped above. Say which case this
+        # is, because the UI shows all of them as a picture with no
+        # description.
+        if message.get("reasoning_content") or message.get("reasoning"):
+            raise _NoCaption(
+                "the model put its reasoning in a field of its own and never "
+                "reached the caption; raise Max tokens"
+            )
+        if choice.get("finish_reason") == "length":
+            raise _NoCaption(
+                "the reply hit the max_tokens limit before any caption came "
+                "out of it; raise Max tokens"
+            )
+        raise _NoCaption("the reply carried an empty caption")
+    return caption
 
 
 class OpenAICompatibleCaptioner(TaggerPlugin):
@@ -269,9 +318,11 @@ class OpenAICompatibleCaptioner(TaggerPlugin):
                 "max": MAX_TOKENS_MAX,
                 "step": 16,
                 "description": (
-                    "Upper bound on caption length. A thinking model spends "
-                    "this budget on its reasoning first and returns nothing "
-                    "if it runs out, so do not set it low."
+                    "Upper bound on the tokens one reply may use, reasoning "
+                    "included. A thinking model spends this budget on its "
+                    "reasoning first and returns an empty caption if it runs "
+                    "out, so do not set it low: the default leaves room for "
+                    "both."
                 ),
             },
             {
@@ -426,6 +477,13 @@ class OpenAICompatibleCaptioner(TaggerPlugin):
                     )
                 )
                 failures = 0
+            except _NoCaption as exc:
+                # The server answered, so the endpoint is fine and this must
+                # not arm the breaker. Logged like the rest: without it the
+                # host reports only "failed to generate description".
+                logger.warning("%s: %s was not captioned: %s", self.name, path, exc)
+                results[path] = None
+                failures = 0
             except Exception as exc:
                 # A refused connection, a timeout, an HTTP error, a redirect,
                 # a body that is not the shape the API documents: each costs
@@ -464,7 +522,45 @@ if __name__ == "__main__":
     assert (
         _caption_text({"choices": [{"message": {"content": " A cat. "}}]}) == "A cat."
     )
-    assert _caption_text({"choices": [{"message": {"content": "  "}}]}) is None
+    # Reasoning inline in the content is stripped rather than stored, and
+    # what is left of an unclosed block is nothing.
+    inline = "<think>The user wants a description.</think>\nA cat."
+    assert _caption_text({"choices": [{"message": {"content": inline}}]}) == "A cat."
+    assert _strip_reasoning("<think>The user wants a desc") == ""
+    assert _strip_reasoning("A cat.") == "A cat."
+
+    # An empty caption raises, and the message says which of the three cases
+    # it was: each fixture is a shape a server really answers with.
+    def _reason_for(reply: Any) -> str:
+        try:
+            _caption_text(reply)
+        except _NoCaption as exc:
+            return str(exc)
+        raise AssertionError(f"an empty caption must raise _NoCaption: {reply}")
+
+    thinking = {
+        "choices": [
+            {
+                "message": {"content": "", "reasoning_content": "The user wants..."},
+                "finish_reason": "length",
+            }
+        ]
+    }
+    # Ollama spells the field differently, and can leave content out entirely.
+    ollama_thinking = {"choices": [{"message": {"reasoning": "The user wants..."}}]}
+    truncated = {"choices": [{"message": {"content": ""}, "finish_reason": "length"}]}
+    unclosed = {
+        "choices": [
+            {"message": {"content": "<think>The user"}, "finish_reason": "length"}
+        ]
+    }
+    assert "field of its own" in _reason_for(thinking)
+    assert "field of its own" in _reason_for(ollama_thinking)
+    assert "hit the max_tokens limit" in _reason_for(truncated)
+    assert "hit the max_tokens limit" in _reason_for(unclosed)
+    assert _reason_for({"choices": [{"message": {"content": "  "}}]}) == (
+        "the reply carried an empty caption"
+    )
     parts = [{"type": "text", "text": "A cat."}]
     assert _caption_text({"choices": [{"message": {"content": parts}}]}) == "A cat."
     mixed = [{"type": "text", "text": "A cat."}, {"type": "image_url", "image_url": {}}]
@@ -510,6 +606,17 @@ if __name__ == "__main__":
     result = plugin.generate_descriptions(paths, {})
     assert set(result) == set(paths)
     assert len(sent) == 2, "files that cannot be read must not arm the breaker"
+
+    def _all_reasoning(url, payload, api_key, timeout):
+        sent.append(url)
+        return thinking
+
+    _request = _all_reasoning
+    _data_uri = _one_pixel
+    sent.clear()
+    result = plugin.generate_descriptions(paths, {})
+    assert set(result.values()) == {None}
+    assert len(sent) == len(paths), "an answering server must not arm the breaker"
 
     assert plugin.generate_descriptions(paths, {"endpoint": "nope"}) == dict.fromkeys(
         paths
