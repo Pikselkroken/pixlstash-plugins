@@ -31,4 +31,4 @@ than the whole batch.
 
 ## License
 
-MIT, see the [LICENSE](../../../LICENSE) at the repository root.
+MIT, see the [LICENSE](LICENSE) in this folder.

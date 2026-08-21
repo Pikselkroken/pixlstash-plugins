@@ -14,9 +14,14 @@ A human reading this is not the target audience; they want the
 > captioning system at `https://...`
 
 Deliver **one new folder** under `plugins/captioning/` or `plugins/image/`,
-holding the plugin, a `README.md`, and a `requirements.txt` if it needs
-third-party packages. Change nothing else. Do not edit other plugins, the
+holding the plugin, a `README.md`, a `LICENSE`, and a `requirements.txt` if it
+needs third-party packages. Change nothing else. Do not edit other plugins, the
 guides, the tests or CI.
+
+The root `LICENSE` covers the scaffolding, not your plugin: every plugin is
+licensed by the `LICENSE` in its own folder, and it must be an OSI-approved
+open source license or it will not be accepted. Copy the root `LICENSE` unless
+you were told to use a different one.
 
 ## Before writing code
 
@@ -171,10 +176,11 @@ order; see §2 and §4 of the image guide.
 
 Copy the layout from an example plugin. It needs: what the plugin does, an
 **Install** section, **Dependencies** (matching `requirements.txt` exactly),
-a **Parameters** table with one row per schema entry, and **License**. If you
-wrap a model with its own license or usage terms, say so, and if the model
-sends images to a remote service, say that first and plainly. Keep that section
-and the `license` and `models` fields of the header saying the same thing.
+a **Parameters** table with one row per schema entry, and **License** pointing
+at the `LICENSE` beside it. If you wrap a model with its own license or usage
+terms, say so, and if the model sends images to a remote service, say that
+first and plainly. Keep that section and the `license` and `models` fields of
+the header saying the same thing.
 
 ## Before you call it done
 

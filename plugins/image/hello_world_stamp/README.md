@@ -40,4 +40,4 @@ cannot be scaled, so `size` has no effect there and the stamp is small.
 
 ## License
 
-MIT, see the [LICENSE](../../../LICENSE) at the repository root.
+MIT, see the [LICENSE](LICENSE) in this folder.

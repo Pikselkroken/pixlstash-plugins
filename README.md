@@ -279,11 +279,13 @@ Plugins are welcome. Open a pull request against `main`:
    what hardware. A reviewer cannot download every model, and CI checks the
    structure of a model-backed plugin but never runs the model, so this is what
    makes a plugin reviewable.
-6. **Only contribute code you may license under an OSI-approved open source
-   license.** If your plugin wraps a model with its own license or usage terms,
-   say so in its README; that is the user's decision to make and the license
-   should be clearly marked in the header, following the pattern in the example
-   plugins.
+6. **Ship a `LICENSE` in the plugin folder.** Your plugin is licensed on its
+   own, not by the repository root, and it must be an OSI-approved open source
+   license or it will not be accepted. MIT matches the examples; copy the root
+   `LICENSE` if that suits you. If your plugin wraps a model with its own
+   license or usage terms, say so in its README; that is the user's decision to
+   make, and the license should be clearly marked in the header, following the
+   pattern in the example plugins.
 
 Turned down: a plugin that phones home, that reads or writes outside the paths
 it is given, that pulls in a dependency it does not need, or that duplicates an
@@ -294,4 +296,13 @@ first. Bug reports and fixes for the plugins already here are just as welcome.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Contributions are accepted under the same license or OSI-approved licenses.
+The [LICENSE](LICENSE) at the root covers the scaffolding only: the docs, the
+tests, the CI and the examples' surrounding structure. It is MIT.
+
+**Each plugin carries its own `LICENSE` file and is licensed by it**, so check
+the folder you are installing from rather than assuming the root applies. Every
+plugin here is under an OSI-approved open source license; one that is not will
+not be accepted into the repository. The examples are all MIT.
+
+A plugin's license covers the plugin, not the model it wraps. A wrapped model's
+own license or usage terms are called out in that plugin's README.
