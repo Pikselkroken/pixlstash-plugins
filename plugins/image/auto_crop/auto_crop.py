@@ -77,12 +77,12 @@ class AutoCrop(ImagePlugin):
         # not in every PixlStash version.)
         try:
             tolerance = int(float(params.get("tolerance", DEFAULT_TOLERANCE)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             tolerance = DEFAULT_TOLERANCE
         tolerance = max(0, min(MAX_TOLERANCE, tolerance))
         try:
             padding = int(float(params.get("padding", DEFAULT_PADDING)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             padding = DEFAULT_PADDING
         padding = max(0, min(MAX_PADDING, padding))
 
@@ -168,4 +168,10 @@ if __name__ == "__main__":
     bars.paste(Image.new("RGB", (16, 6), (90, 120, 200)), (0, 3))
     assert _crop(bars, 0, 0).size == (16, 6)
     assert _crop(Image.new("L", (5, 5), 128), 0, 0).size == (5, 5)
+    # A parameter that overflows falls back to its default instead of taking
+    # the batch down with it: `int(float("inf"))` raises OverflowError.
+    assert AutoCrop().run([bars], {"tolerance": "inf", "padding": "1e999"})[0].size == (
+        16,
+        6,
+    )
     print("ok")
