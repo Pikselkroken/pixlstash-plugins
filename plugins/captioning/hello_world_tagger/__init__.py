@@ -37,6 +37,20 @@ class HelloWorldTagger(TaggerPlugin):
     def __init__(self) -> None:
         self._loaded = False
 
+    def model_version(self) -> str:
+        """Identify whatever produced the confidences below.
+
+        PixlStash stamps this on every prediction row it stores for this
+        plugin, and it is the only thing that marks one stale: return the same
+        string after the numbers change and the old confidences are kept
+        forever.  Bump it whenever anything that moves them moves, weights,
+        quantisation and inference runtime included.  There are no weights
+        here, so it tracks ``tag_images`` instead.  Settings are not part of
+        it: the host keys staleness on the version alone, so changing
+        ``confidence`` does not rewrite rows already stored.
+        """
+        return "1"
+
     # ------------------------------------------------------------------
     # Schema: this JSON *is* the settings UI
     # ------------------------------------------------------------------

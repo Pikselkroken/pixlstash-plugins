@@ -58,6 +58,11 @@ you were told to use a different one.
   re-executes the module on every Filters listing and every run.
 - **Pin any model revision you download.** An unpinned HuggingFace ref is a
   silent supply-chain change.
+- **A tagger returning confidences declares `model_version()`.** The host
+  stamps it on every stored prediction and it is the only thing that marks one
+  stale, so return something that changes when the numbers do (the pinned
+  revision, plus the quantisation or runtime if either moves them) and never
+  the empty default. See §5 of the captioning guide.
 - **Fill in the header.** `name`, `display_name`, `description`, `author`,
   `license` and `models` on the class, as literals a reader can take without
   running the module: no module constant, no f-string, nothing set in
@@ -166,8 +171,9 @@ class MyCaptioner(TaggerPlugin):
         return results
 ```
 
-A tagger is the same shape with `supports_tags = True` and `tag_images`,
-returning `{path: [TagResult(tag=..., confidence=...)]}`. An image plugin is
+A tagger is the same shape with `supports_tags = True`, `tag_images`
+returning `{path: [TagResult(tag=..., confidence=...)]}`, and a
+`model_version()` returning the pinned revision. An image plugin is
 `parameter_schema` plus `run(images, parameters, progress_callback,
 error_callback, captions)`, returning a list of the same length in the same
 order; see §2 and §4 of the image guide.

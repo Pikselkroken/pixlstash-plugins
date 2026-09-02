@@ -138,6 +138,25 @@ def test_plugin_structure(directory: Path):
             "plugin appears in no table"
         )
 
+        if plugin.supports_tags:
+            # The stamp on every prediction row the host stores for this
+            # plugin, and the only thing that marks one stale: the empty
+            # default is recorded as "unknown", which never goes stale, so a
+            # tagger that ships it keeps its first confidences forever.
+            # Older PixlStash builds do not call this; declaring it is still
+            # the bar here, since the plugin outlives the build it was
+            # written against.
+            version = getattr(plugin, "model_version", lambda: "")()
+            assert isinstance(version, str) and version.strip(), (
+                f"{name}: a tag plugin must return a non-empty model_version()"
+            )
+            # The host writes "<plugin>@<version>", and tells the two halves
+            # apart by that separator.
+            assert "@" not in version, (
+                f"{name}: model_version() must not contain '@', which the host "
+                "uses to qualify it with the plugin name"
+            )
+
         check_plugin_header(name, plugin)
         check_parameter_schema(
             name,
