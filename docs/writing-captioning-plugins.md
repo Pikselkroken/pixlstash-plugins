@@ -228,13 +228,11 @@ def tag_images(self, image_paths, parameters, preloaded=None, stop_event=None):
 
 ### `model_version()`, the staleness key
 
-A tag plugin returning confidences gets `TagPrediction` rows of its own, the
-way the built-in tagger does, and every row is stamped with what your
-`model_version()` returned, qualified with your plugin name
-(`my_tagger@2026-01`). That stamp is the *only* thing that marks a stored
-prediction stale: when it changes, PixlStash deletes the previous generation's
-rows and rewrites them, and when it does not, the old confidences are kept
-forever.
+A tag plugin should return a non-empty `model_version()` string; when your
+`TagResult` values include confidences, PixlStash stores `TagPrediction` rows
+and stamps each row with `<plugin>@<version>`. That stamp is the *only*
+staleness key: when it changes, PixlStash deletes the previous generation's
+rows and rewrites them, and when it does not, the old confidences are kept forever.
 
 ```python
 def model_version(self) -> str:
