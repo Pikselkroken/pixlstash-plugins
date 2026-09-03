@@ -190,6 +190,7 @@ tell the truth between calls, because the settings table polls it.
 | `unload()` | yes (abstract) | **No.** See below. |
 | `estimated_vram_mb(image_count, parameters)` | no | **No.** See below. |
 | `effective_batch_size(parameters)` | no | **No** (for description plugins). |
+| `model_version()` | no | **Yes**, for a tag plugin whose `TagResult`s carry confidences. See §5. |
 
 Three honest gaps in the API, to know about rather than design around:
 
@@ -224,6 +225,46 @@ def tag_images(self, image_paths, parameters, preloaded=None, stop_event=None):
   call, since third-party model code raises whatever it likes and a template or
   a tokenizer can fail in ways `except ValueError` will not see.
 - `TagResult.confidence` may be `None` for models without probabilities.
+
+### `model_version()`, the staleness key
+
+A tag plugin should return a non-empty `model_version()` string; when your
+`TagResult` values include confidences, PixlStash stores `TagPrediction` rows
+and stamps each row with `<plugin>@<version>`. That stamp is the *only*
+staleness key: when it changes, PixlStash deletes the previous generation's
+rows and rewrites them, and when it does not, the old confidences are kept forever.
+
+```python
+def model_version(self) -> str:
+    # The pinned revision plus how it is run. Leave the "@" to the host.
+    return "a1b2c3d-int8"
+```
+
+So return whatever identifies the weights *and how they are run*: a repo
+revision, a file hash, a release tag, plus anything else that moves the
+numbers, quantisation and inference runtime included. Two builds of the same
+weights that score differently are two versions. The default is `""`, which
+the host records as `unknown`, and an `unknown` row never goes stale.
+
+Two host-side rules are worth knowing, because neither is visible from the
+plugin:
+
+- **A plugin's confidences do not feed the anomaly penalty.** Raw confidences
+  are not comparable across models and the smart-score thresholds are
+  calibrated against the built-in tagger, so a plugin's 0.4 is stored and shown
+  but not scored. A human accept or reject on one of your rows still counts.
+- **Whichever population owns a tag keeps it.** A picture holds one prediction
+  row per tag, and plugin rows never overwrite or delete the built-in tagger's,
+  so you cannot record a prediction for a tag it already has a row for.
+
+Settings are not part of the version, so changing a parameter that moves your
+confidences does not rewrite rows already stored; bump the version if that
+matters.
+
+**`model_version()` needs a PixlStash build that stores plugin predictions.**
+It landed in [PR #1145](https://github.com/Pikselkroken/pixlstash/pull/1145),
+targeted at 1.10.0 like plugin discovery itself. Declaring it on an older build
+is harmless: nothing calls it.
 
 ## 6. Downloads
 
