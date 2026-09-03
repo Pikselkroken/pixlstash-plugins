@@ -31,6 +31,7 @@ directory and restart PixlStash Server. See the repository README.
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 from typing import Any
@@ -47,6 +48,8 @@ from pixlstash.tagger_plugins.base import TaggerPlugin
 from safetensors.torch import load_file
 from transformers import AutoConfig
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
+
+logger = logging.getLogger(__name__)
 
 MODEL_REPO = "vikhyatk/moondream2"
 
@@ -259,6 +262,45 @@ class Moondream2Captioner(TaggerPlugin):
             # `.to()` before the first caption, because Moondream allocates its
             # KV cache lazily on whichever device the model is on by then.
             self._model = model.to(self._device).eval()
+            self._compile_for_cuda()
+
+    def _compile_for_cuda(self) -> None:
+        """Compile the model on CUDA, and carry on if that fails.
+
+        Moondream decodes one token per forward pass against a batch-1 KV
+        cache, so a batch is bound by kernel launch overhead rather than by
+        arithmetic. Its own ``compile()`` wraps the vision encoder, the prefill
+        and the decode step, the last one under CUDA graphs, and measured 1.3x
+        on an RTX 5090: 95 to 124 tokens/second, 1.14 to 1.49 images/second, at
+        the same 4.5 GB peak.
+
+        The warmup lands on the first caption of each process, about 45 seconds
+        cold and 10 once torch has written its inductor cache, against roughly
+        28 seconds of work for one 32-image batch. Worth it for a batch, which
+        is the only way descriptions are generated.
+
+        Three things this deliberately does not do:
+
+        - It skips a non-CUDA device. The CPU spillover path would pay the
+          warmup for nothing.
+        - It calls ``compile()`` on the inner ``MoondreamModel``, not on the
+          ``HfMoondream`` wrapper, whose ``compile()`` is the unrelated one
+          ``nn.Module`` provides.
+        - It does not let a failure out. This is an optimisation, and torch
+          compiles ``fullgraph=True``, which raises on a graph break. Moondream
+          also unpacks any ``QuantizedLinear`` layer here, which needs torchao
+          installed: the pinned revision ships plain bfloat16 weights and has
+          none, so that only bites if the pin moves to a quantised checkpoint.
+          An uncompiled model captions correctly, just slower.
+        """
+        if not str(self._device).startswith("cuda"):
+            return
+        try:
+            self._model.model.compile()
+        except Exception as exc:
+            logger.warning(
+                "Moondream2: torch.compile failed, captioning uncompiled: %s", exc
+            )
 
     def unload(self) -> None:
         with self._lock:
